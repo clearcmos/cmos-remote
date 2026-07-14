@@ -1,0 +1,21 @@
+# Gradle
+.gradle/
+build/
+local.properties
+
+# Android
+*.apk
+*.ap_
+*.dex
+captures/
+*.iml
+.idea/
+*.log
+
+# Nix
+result
+result-*
+
+# OS
+.DS_Store
+*~

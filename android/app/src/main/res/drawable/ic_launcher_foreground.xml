@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Remote control icon -->
+    <group
+        android:translateX="27"
+        android:translateY="27">
+        <!-- Outer rounded rectangle (remote body) -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M8,2 L46,2 C49.3,2 52,4.7 52,8 L52,46 C52,49.3 49.3,52 46,52 L8,52 C4.7,52 2,49.3 2,46 L2,8 C2,4.7 4.7,2 8,2 Z"/>
+        <!-- Top button row -->
+        <path
+            android:fillColor="#6200EE"
+            android:pathData="M12,10 L24,10 C25.1,10 26,10.9 26,12 L26,16 C26,17.1 25.1,18 24,18 L12,18 C10.9,18 10,17.1 10,16 L10,12 C10,10.9 10.9,10 12,10 Z"/>
+        <path
+            android:fillColor="#6200EE"
+            android:pathData="M30,10 L42,10 C43.1,10 44,10.9 44,12 L44,16 C44,17.1 43.1,18 42,18 L30,18 C28.9,18 28,17.1 28,16 L28,12 C28,10.9 28.9,10 30,10 Z"/>
+        <!-- Center circle (power/main button) -->
+        <path
+            android:fillColor="#BB86FC"
+            android:pathData="M27,27 m-10,0 a10,10 0,1 1,20 0 a10,10 0,1 1,-20 0"/>
+        <!-- Bottom status indicator -->
+        <path
+            android:fillColor="#4CAF50"
+            android:pathData="M22,42 L32,42 C33.1,42 34,42.9 34,44 L34,46 C34,47.1 33.1,48 32,48 L22,48 C20.9,48 20,47.1 20,46 L20,44 C20,42.9 20.9,42 22,42 Z"/>
+    </group>
+</vector>

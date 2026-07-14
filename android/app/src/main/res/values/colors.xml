@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#6200EE</color>
+    <color name="widget_background">#1E1E1E</color>
+    <color name="widget_button">#2D2D2D</color>
+    <color name="widget_text">#FFFFFF</color>
+    <color name="widget_accent">#BB86FC</color>
+    <color name="widget_connected">#4CAF50</color>
+    <color name="widget_disconnected">#F44336</color>
+</resources>
