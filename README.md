@@ -226,4 +226,4 @@ See `docs/` folder for detailed development documentation:
 
 ## License
 
-Personal project, published as-is with no warranty or support. You are welcome to read, fork, and adapt it for your own use.
+MIT - see [LICENSE](LICENSE). Published as-is with no warranty or support.
