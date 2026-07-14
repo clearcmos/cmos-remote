@@ -1,7 +1,5 @@
 # Troubleshooting
 
-**Last Modified:** 2026-07-14
-
 ## Connection Issues
 
 ### App shows "Disconnected" or "Server Unreachable"

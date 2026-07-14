@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-**Last Modified:** 2026-07-14
-
 This file provides guidance to Claude Code when working with the CMOS Remote project.
 
 ## Project Overview

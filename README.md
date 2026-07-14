@@ -1,7 +1,5 @@
 # CMOS Remote
 
-**Last Modified:** 2026-07-14
-
 Android remote control app for the cmos desktop (Arch Linux), with home screen widget support.
 
 ## Features
@@ -10,7 +8,7 @@ Android remote control app for the cmos desktop (Arch Linux), with home screen w
 - **Volume Control** - Adjust system volume with slider (0-100%)
 - **Bluetooth Toggle** - Turn Bluetooth on/off and auto-connect Soundcore Life Q30 headphones
 - **Screen Off** - Turn off monitors and enable Do Not Disturb mode (auto-restores on wake)
-- **Home Screen Widget** - Quick access buttons without opening the app
+- **Home Screen Widget** - Common actions from the home screen without opening the app
 - **Authenticated** - HMAC challenge-response with a shared secret; the token never travels on the wire and the app verifies the server's identity before trusting it
 - **LAN-Only** - Firewalled to the LAN; the authenticated health check gates access
 - **Auto-Reconnect** - Automatically reconnects when WiFi state changes

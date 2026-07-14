@@ -1,7 +1,5 @@
 # Adding New Features
 
-**Last Modified:** 2025-12-18
-
 This guide explains how to add new remote control actions to CMOS Remote.
 
 ## Overview

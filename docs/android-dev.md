@@ -1,7 +1,5 @@
 # Android Development Setup
 
-**Last Modified:** 2025-12-18
-
 ## Overview
 
 This project uses Nix flakes to provide a reproducible Android development environment on NixOS, eliminating the need for Android Studio.

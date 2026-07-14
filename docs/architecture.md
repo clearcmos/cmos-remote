@@ -1,7 +1,5 @@
 # Architecture
 
-**Last Modified:** 2026-07-14
-
 ## Overview
 
 CMOS Remote uses a client-server architecture with HTTP REST API communication over the local network.
