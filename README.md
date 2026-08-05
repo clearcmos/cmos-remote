@@ -4,10 +4,14 @@ Android remote control app for the cmos desktop (Arch Linux), with home screen w
 
 ## Features
 
+Built for one desktop (Arch, KDE Plasma, PipeWire). Two of the actions depend on
+helper scripts that are not in this repo; see
+[Adapting This for Your Own Desktop](#adapting-this-for-your-own-desktop).
+
 - **Mute Toggle** - Mute/unmute all system audio via PipeWire/WirePlumber
 - **Volume Control** - Adjust system volume with slider (0-100%)
-- **Bluetooth Toggle** - Turn Bluetooth on/off and auto-connect Soundcore Life Q30 headphones
-- **Screen Off** - Turn off monitors and enable Do Not Disturb mode (auto-restores on wake)
+- **Bluetooth Toggle** - Turn Bluetooth on/off and auto-connect a specific pair of headphones (needs your own `bt-toggle` script)
+- **Screen Off** - Turn off monitors and enable Do Not Disturb (needs your own `screen-off-toggle.service`; the author's is KDE Plasma-specific)
 - **Home Screen Widget** - Common actions from the home screen without opening the app
 - **Authenticated** - HMAC challenge-response with a shared secret; the token never travels on the wire and the app verifies the server's identity before trusting it
 - **LAN-Only** - Firewalled to the LAN; the authenticated health check gates access
@@ -38,7 +42,7 @@ off) directly.
 ## Requirements
 
 ### Server
-- Linux with systemd and a logged-in desktop session (the unit runs in user scope so it inherits that session's PipeWire and D-Bus). Developed on Arch; nothing in the code is Arch-specific.
+- Linux with systemd and a logged-in graphical session (the unit runs in user scope so it inherits that session's PipeWire and D-Bus). Developed on Arch + KDE Plasma; the server code is not Arch-specific, but two endpoints depend on helpers that are (see below).
 - Python 3.11+ with `venv`
 - PipeWire/WirePlumber for audio control
 - BlueZ for Bluetooth control, plus the `bt-toggle` helper on PATH (deployed from `~/arch`)
@@ -184,17 +188,32 @@ only machine-level dependency tracked in `~/arch` is the LAN firewall rule for
 port 8201, because the nftables config is rebuilt from that file on every reload.
 See `CLAUDE.md` for details.
 
-## Running This on Your Own Machine
+## Adapting This for Your Own Desktop
 
-Written for one desktop, but nothing here is pinned to that machine. What you
-need, what is optional, and what you have to supply yourself:
+This is a personal tool built for one machine: Arch, KDE Plasma, PipeWire. It is
+not a general-purpose desktop remote and it will not fully work on an arbitrary
+setup without changes. Concretely, four of the six endpoints are generic and two
+need equivalents you write yourself.
 
-**Required**
-- Linux with systemd (the server installs as a user unit) and Python 3.11+.
-- PipeWire/WirePlumber for the audio endpoints. Commands are resolved from PATH
-  at runtime, so no distro's layout is hardcoded.
-- Nothing else. There is no configuration file to edit, no hostname baked into
-  the app, and no dependency on the author's config repo.
+| Endpoint | Works on |
+|----------|----------|
+| `/health`, `/status` | any Linux with the server running |
+| `/mute`, `/volume` | any PipeWire/WirePlumber system |
+| `/bluetooth` | needs a `bt-toggle` script you supply (not in this repo) |
+| `/screen-off` | needs a `screen-off-toggle.service` you supply; the author's is KDE Plasma-specific |
+
+**Hard requirements**
+- Linux with systemd, because the server installs as a systemd user unit. No
+  macOS, no Windows, no init system without user services.
+- A logged-in graphical session, since the unit inherits that session's PipeWire
+  and D-Bus. This is not a headless server tool.
+- Python 3.11+.
+- PipeWire/WirePlumber for audio. PulseAudio and bare ALSA are not supported;
+  `wpctl` is the only backend.
+
+Within those bounds nothing is hardcoded: commands are resolved from PATH at
+runtime, there is no config file to edit, no hostname compiled into the app, and
+no dependency on the author's config repo.
 
 **Set your own values**
 ```bash
@@ -227,11 +246,18 @@ The server listens on `0.0.0.0:8201`; restrict it to your LAN with whatever
 firewall you use. The `~/arch/.../nftables` commands in these docs are the
 author's mechanism, not a requirement.
 
-**What is genuinely author-specific**
-Only conveniences, all optional: the 1Password token provisioning, the nftables
-rule location, the `bt-toggle` and `screen-off-toggle` helpers named above, and
-the nix dev shell in `android/`. The default server IP shown in the app's
-settings (`192.168.1.2`) is a starting value you overwrite in the UI.
+**What is author-specific**
+
+Two categories, and the difference matters:
+
+- *You must replace these or lose the feature*: `bt-toggle` and
+  `screen-off-toggle.service`. Neither is in this repo. The screen-off one is
+  KDE Plasma-specific in the author's setup (DND plus DPMS through powerdevil);
+  on GNOME, Sway, or anything else you are writing your own.
+- *Optional conveniences you can ignore*: 1Password token provisioning, the
+  nftables rule location, and the nix dev shell in `android/`. The default
+  server IP in the app's settings (`192.168.1.2`) is just a starting value you
+  overwrite in the UI.
 
 ## Troubleshooting
 
