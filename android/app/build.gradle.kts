@@ -125,7 +125,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
 
     // OkHttp for HTTP requests
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:5.4.0")
 
     // WorkManager for background sync
     implementation("androidx.work:work-runtime-ktx:2.10.0")
@@ -133,5 +133,5 @@ dependencies {
     // Unit tests (JVM, no device or emulator)
     testImplementation(kotlin("test"))
     testImplementation("junit:junit:4.13.2")
-    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:5.4.0")
 }
