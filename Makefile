@@ -1,31 +1,40 @@
-# Task runner for the checks CI runs. Requires the server dev tooling
-# (server/requirements-dev.txt) and, for the android targets, a JDK 17 plus the
-# Android SDK; see docs/android-dev.md.
+# Task runner for the checks CI runs.
 #
-# The android targets go through ./gradlew, so they work with any SDK setup.
-# On a machine using the optional nix dev shell, run `make android-nix-check`.
+# Server targets use the venv install.sh creates; run `make dev-install` once to
+# add the dev tooling to it. Android targets go through ./gradlew, so they work
+# with any SDK setup (see docs/android-dev.md). On a machine using the optional
+# nix dev shell, use `make android-nix-check`.
 
-.PHONY: help check server-check server-lint server-format server-typecheck server-test \
-        android-check android-test android-lint android-build android-nix-check clean
+VENV := server/.venv
+BIN := $(VENV)/bin
 
-help:
-	@grep -E '^[a-z-]+:.*?##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
+.PHONY: help dev-install check server-check server-lint server-format server-typecheck \
+        server-test android-check android-test android-lint android-build android-nix-check clean
+
+help: ## List targets
+	@grep -E '^[a-z-]+:.*?##' $(MAKEFILE_LIST) | sed 's/:[^#]*## /\t/'
+
+dev-install: ## Create the server venv if needed and install runtime + dev deps
+	test -d $(VENV) || python3 -m venv $(VENV)
+	$(BIN)/pip install -q --upgrade pip
+	$(BIN)/pip install -q --require-hashes -r server/requirements.lock
+	$(BIN)/pip install -q -r server/requirements-dev.txt
 
 check: server-check android-check ## Everything CI runs
 
 server-check: server-lint server-format server-typecheck server-test ## Server: lint, format, types, tests
 
 server-lint: ## ruff check
-	cd server && ruff check .
+	cd server && ../$(BIN)/ruff check .
 
 server-format: ## ruff format check (use `ruff format .` to apply)
-	cd server && ruff format --check .
+	cd server && ../$(BIN)/ruff format --check .
 
 server-typecheck: ## mypy
-	cd server && mypy .
+	cd server && ../$(BIN)/mypy .
 
 server-test: ## pytest with the coverage gate
-	cd server && coverage run -m pytest && coverage report
+	cd server && ../$(BIN)/coverage run -m pytest && ../$(BIN)/coverage report
 
 android-check: android-test android-lint android-build ## Android: unit tests, lint, debug APK
 

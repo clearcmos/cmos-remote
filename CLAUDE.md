@@ -99,8 +99,9 @@ mypy .
 coverage run -m pytest && coverage report   # gate: fail_under = 85 in pyproject
 ```
 
-From the repo root, `make check` runs everything CI runs and `make help` lists
-the targets. See "Tests" below for what is covered.
+From the repo root: `make dev-install` once (adds the dev tooling to
+`server/.venv`), then `make check` runs everything CI runs; `make help` lists the
+targets. See "Tests" below for what is covered.
 
 `pre-commit install` is optional and wires only the fast checks (ruff plus
 whitespace and YAML/JSON hygiene). CI stays the authority.

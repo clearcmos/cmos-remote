@@ -236,11 +236,16 @@ This is a personal tool built for one desktop (Arch + KDE Plasma + PipeWire), so
 
 ## Development
 
-`make check` from the repo root runs everything CI runs; `make help` lists the
-individual targets. Under the hood:
+```bash
+make dev-install   # once: server venv + dev tooling
+make check         # everything CI runs
+make help          # list individual targets
+```
+
+Under the hood:
 
 ```bash
-# Server (from server/): pip install -r requirements-dev.txt first
+# Server (from server/, using the venv's tools)
 ruff check . && ruff format --check . && mypy .
 coverage run -m pytest && coverage report   # gate: 85%
 
