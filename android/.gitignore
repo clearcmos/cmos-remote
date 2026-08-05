@@ -3,6 +3,13 @@
 build/
 local.properties
 
+# Release signing. keystore.properties holds the store and key passwords in
+# plain text, and the keystore itself is the only thing that can publish an
+# upgrade for this app id: losing it or leaking it are both unrecoverable.
+keystore.properties
+*.jks
+*.keystore
+
 # Android
 *.apk
 *.ap_

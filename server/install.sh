@@ -22,9 +22,15 @@ if [[ ! -d "$VENV" ]]; then
     echo "==> Creating venv at $VENV"
     python3 -m venv "$VENV"
 fi
-echo "==> Installing Python dependencies"
+# Installs from the hash-locked requirements.lock, not requirements.txt: with
+# --require-hashes pip refuses anything whose artifact does not match the
+# recorded sha256, so a compromised or swapped wheel fails the install instead
+# of landing on the host. Regenerate the lock after editing requirements.txt:
+#   uv pip compile requirements.txt -o requirements.lock --universal \
+#       --generate-hashes --python-version 3.11
+echo "==> Installing Python dependencies (hash-verified)"
 "$VENV/bin/pip" install -q --upgrade pip
-"$VENV/bin/pip" install -q -r "$SERVER_DIR/requirements.txt"
+"$VENV/bin/pip" install -q --require-hashes -r "$SERVER_DIR/requirements.lock"
 
 # 2. Provision the shared auth token from 1Password (op inject).
 #    Resolves cmos-remote.env.tpl -> ~/.config/cmos-remote/env (0600). If op,

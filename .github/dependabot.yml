@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # Actions are SHA-pinned, so dependabot is the only thing that will move them.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gradle
+    directory: /android
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: pip
+    directory: /server
+    schedule:
+      interval: monthly

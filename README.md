@@ -39,7 +39,7 @@ off) directly.
 
 ### Server (cmos host)
 - Arch Linux with a logged-in desktop session (systemd user service)
-- Python 3 with `venv`
+- Python 3.11+ with `venv`
 - PipeWire/WirePlumber for audio control
 - BlueZ for Bluetooth control, plus the `bt-toggle` helper on PATH (deployed from `~/arch`)
 - Port 8201 open on the LAN
@@ -48,6 +48,8 @@ off) directly.
 ### Android App
 - Android 8.0+ (API 26)
 - Connected to home WiFi
+- To build from source: JDK 17 and the Android SDK (platform 35, build-tools
+  35.0.0). See `docs/android-dev.md`.
 
 ## Quick Start
 
@@ -82,13 +84,18 @@ op read op://api/CMOS_REMOTE/password
 
 Then re-run `./server/install.sh` (it injects the token into `~/.config/cmos-remote/env` via the `SVC_API` service account and restarts the service). Enter the same value in the app's settings in step 4. If you skip this, the server runs without auth.
 
-### 3. Build and Install the App
+### 3. Install the App
+
+Either install a published APK from [Releases](https://github.com/clearcmos/cmos-remote/releases)
+(Android will ask you to allow installs from an unknown source), or build it
+yourself:
 
 ```bash
 cd android
 
-# Build and install (requires connected device via ADB)
-nix develop --command ./gradlew installDebug
+# Requires JDK 17 + Android SDK (platform 35, build-tools 35.0.0) and a device
+# connected via ADB. See docs/android-dev.md for the three ways to get the SDK.
+./gradlew installDebug
 ```
 
 ### 4. Configure the App
@@ -132,8 +139,14 @@ Settings are editable in-app (tap the gear icon). Defaults live in `SettingsMana
 ```
 cmos-remote/
 ├── server/
-│   ├── main.py              # FastAPI server
-│   ├── requirements.txt     # Python dependencies
+│   ├── main.py              # FastAPI app, models, endpoints
+│   ├── auth.py              # HMAC verification + response signing
+│   ├── controls.py          # system commands (parsers split from runners)
+│   ├── tests/               # pytest suite
+│   ├── requirements.txt     # direct dependencies
+│   ├── requirements.lock    # hash-locked full set (what install.sh installs)
+│   ├── requirements-dev.txt # ruff, mypy, pytest, coverage
+│   ├── pyproject.toml       # ruff, mypy, pytest, coverage config
 │   ├── cmos-remote.service  # systemd user unit (canonical)
 │   └── install.sh           # venv + service installer (idempotent)
 ├── android/
@@ -145,14 +158,20 @@ cmos-remote/
 │   │   │   │   ├── Models.kt        # Data classes
 │   │   │   │   └── SettingsManager.kt
 │   │   │   ├── network/
-│   │   │   │   ├── ApiClient.kt     # HTTP client
+│   │   │   │   ├── ApiClient.kt        # HTTP client
+│   │   │   │   ├── HmacInterceptor.kt  # Signs requests, verifies responses
 │   │   │   │   └── NetworkMonitor.kt
+│   │   │   ├── ui/theme/Theme.kt
 │   │   │   └── widget/
 │   │   │       ├── RemoteWidget.kt  # Glance widget
 │   │   │       └── WidgetActionReceiver.kt
+│   │   ├── src/test/kotlin/...      # JVM unit tests
 │   │   └── res/
 │   ├── build.gradle.kts
-│   └── flake.nix            # Nix dev environment
+│   └── flake.nix            # Optional nix dev shell (not required to build)
+├── spec/                    # Cross-language wire-format contracts
+├── .github/workflows/       # ci.yml (checks, tests, APK build), release.yml
+├── Makefile                 # make check runs what CI runs
 ├── docs/                    # Development documentation
 ├── CLAUDE.md               # Claude Code instructions
 └── README.md               # This file
@@ -217,10 +236,35 @@ This is a personal tool built for one desktop (Arch + KDE Plasma + PipeWire), so
 
 ## Development
 
-See `docs/` folder for detailed development documentation:
+`make check` from the repo root runs everything CI runs; `make help` lists the
+individual targets. Under the hood:
+
+```bash
+# Server (from server/): pip install -r requirements-dev.txt first
+ruff check . && ruff format --check . && mypy .
+coverage run -m pytest && coverage report   # gate: 85%
+
+# App (from android/): needs JDK 17 + Android SDK, see docs/android-dev.md
+./gradlew testDebugUnitTest lintDebug assembleDebug
+```
+
+142 tests: 104 on the server (100% line coverage) and 38 in the app, all
+runnable without a device. The HMAC scheme and the JSON payloads are each
+implemented twice, once in Python and once in Kotlin, so `spec/hmac-vectors.json`
+and `spec/wire-payloads.json` hold the canonical formats and both test suites
+assert against them. A one-sided change fails CI rather than turning into an
+unexplained "Disconnected" in the app.
+
+`.github/workflows/ci.yml` runs the server checks on CPython 3.11 and 3.14 plus
+the app's unit tests, Android Lint, and a debug APK build on every push and pull
+request. Pushing a `v*` tag publishes a signed APK to a GitHub release.
+`pre-commit install` is optional and covers only the fast checks.
+
+See `docs/` for detailed development documentation:
 - `docs/architecture.md` - System architecture details
-- `docs/android-dev.md` - Android development setup
+- `docs/android-dev.md` - Android development setup, SDK options, releases
 - `docs/adding-features.md` - How to add new remote actions
+- `docs/troubleshooting.md` - Common issues and debug commands
 
 ## License
 

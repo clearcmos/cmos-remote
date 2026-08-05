@@ -32,10 +32,12 @@
       in
       {
         devShells.default = pkgs.mkShell {
+          # No gradle here on purpose: the build goes through the committed
+          # wrapper (./gradlew), so a second gradle would only be a second
+          # version to keep in sync.
           buildInputs = with pkgs; [
             androidSdk
             jdk17
-            gradle
           ];
 
           ANDROID_HOME = "${androidSdk}/libexec/android-sdk";

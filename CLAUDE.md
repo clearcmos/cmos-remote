@@ -39,10 +39,26 @@ This repo owns the `cmos-remote` server end to end: the application code, the sy
 ## Key Files
 
 ### Server
-- `server/main.py` - FastAPI server with all endpoints
-- `server/requirements.txt` - Python dependencies
+- `server/main.py` - FastAPI app, models, endpoints
+- `server/auth.py` - HMAC verification and response signing (`Authenticator`)
+- `server/controls.py` - system command wrappers, parsers split from runners
+- `server/tests/` - pytest suite, one file per module plus the contract tests
+- `server/requirements.txt` - direct dependencies (human-edited)
+- `server/requirements.lock` - hash-locked full set; what install.sh installs
+- `server/requirements-dev.txt` - ruff, mypy, pytest, coverage, httpx
+- `server/pyproject.toml` - ruff, mypy, pytest, coverage configuration (tool config only; the server is not a package)
 - `server/cmos-remote.service` - systemd user unit (canonical; deployed by `install.sh` with paths rewritten to the actual checkout location)
 - `server/install.sh` - idempotent installer: creates venv, installs deps, deploys and enables the user unit
+
+### Contracts
+- `spec/hmac-vectors.json` - the signed-message format, asserted by both test suites
+- `spec/wire-payloads.json` - the response payload shapes, asserted by both test suites
+
+### CI and release
+- `Makefile` - `make check` runs what CI runs; `make help` lists targets
+- `.github/workflows/ci.yml` - server lint/format/typecheck/tests on CPython 3.11 and 3.14, Android unit tests, Android Lint, debug APK build, `ci-ok` aggregate gate
+- `.github/workflows/release.yml` - on `v*` tags: signed APK attached to a GitHub release
+- `.github/dependabot.yml` - github-actions weekly, gradle and pip monthly
 
 ### Android App
 - `android/app/src/main/kotlin/com/clearcmos/cmosremote/`
@@ -51,7 +67,9 @@ This repo owns the `cmos-remote` server end to end: the application code, the sy
   - `data/Models.kt` - Data classes and enums
   - `data/SettingsManager.kt` - DataStore preferences
   - `network/ApiClient.kt` - OkHttp HTTP client
+  - `network/HmacInterceptor.kt` - signs requests, verifies response signatures
   - `network/NetworkMonitor.kt` - WiFi/connectivity monitoring
+  - `ui/theme/Theme.kt` - Material 3 theme
   - `widget/RemoteWidget.kt` - Glance home screen widget
   - `widget/WidgetActionReceiver.kt` - Broadcast receiver for widget actions
 
@@ -72,25 +90,56 @@ journalctl --user -u cmos-remote -f
 
 # Development mode with auto-reload (from server/)
 .venv/bin/uvicorn main:app --host 0.0.0.0 --port 8201 --reload
+
+# Checks (from server/; configured in pyproject.toml, installed from
+# requirements-dev.txt, and run by .github/workflows/ci.yml)
+ruff check .
+ruff format --check .
+mypy .
+coverage run -m pytest && coverage report   # gate: fail_under = 85 in pyproject
 ```
+
+From the repo root, `make check` runs everything CI runs and `make help` lists
+the targets. See "Tests" below for what is covered.
+
+`pre-commit install` is optional and wires only the fast checks (ruff plus
+whitespace and YAML/JSON hygiene). CI stays the authority.
 
 ### Android App
 ```bash
 cd android
 
-# Enter nix development shell
-nix develop
+# Unit tests (JVM only, no device needed) and Android Lint
+./gradlew testDebugUnitTest
+./gradlew lintDebug
 
-# Build debug APK
+# Build debug APK (needs JDK 17 + Android SDK platform 35 / build-tools 35.0.0
+# on PATH or via ANDROID_HOME; see docs/android-dev.md)
 ./gradlew assembleDebug
 
 # Build and install to connected device
 ./gradlew installDebug
 
-# Or use helper scripts
+# On this Arch host, that toolchain comes from the optional nix dev shell,
+# which is the only JDK and Android SDK installed here:
+nix develop --command ./gradlew installDebug
+
+# Or use helper scripts (they assume the toolchain is already on PATH)
 ./build.sh
 ./install.sh
 ```
+
+The nix flake is a local convenience, not a requirement: CI and the build docs
+use the plain SDK path (`setup-java` + `setup-android`) so the path outside
+contributors follow is the one that gets exercised.
+
+### Release
+
+Tag `v*` to publish a signed APK via `.github/workflows/release.yml`. Signing
+material comes from four repository secrets, and locally from a gitignored
+`android/keystore.properties`. Full procedure in `docs/android-dev.md`
+("Release Build"). Without a keystore, `assembleRelease` still builds but the
+output is `app-release-unsigned.apk`, which the release workflow rejects.
 
 ## Wireless ADB Setup
 
@@ -125,7 +174,7 @@ The server and app share a secret (`CMOS_REMOTE_TOKEN`). It is never sent on the
 - Each response carries `X-Resp-Ts` / `X-Resp-Sig` = `HMAC-SHA256(token, "nonce\nresp_ts\nstatus\nsha256(body)")`. The app verifies this before trusting the response, so an impostor at the same IP:port (e.g. on a foreign WiFi) cannot fake being the server, and the app never discloses the secret to it.
 - If `CMOS_REMOTE_TOKEN` is unset, the server runs open (no auth) and the app skips signing when its token field is blank. Both must be set (to the same value) to enable auth.
 
-The scheme is implemented in `server/main.py` (`require_auth` + `sign_response`) and `android/.../network/HmacInterceptor.kt`; the two must stay byte-for-byte in agreement on the signed message format.
+The scheme is implemented in `server/auth.py` (`Authenticator.verify` + `sign_response`, wired into the app by `main.py`) and `android/.../network/HmacInterceptor.kt`. The two must stay byte-for-byte in agreement on the signed message format, which is what `spec/hmac-vectors.json` and the parity tests on both sides enforce.
 
 **Token provisioning:** the secret lives in 1Password (`op://api/CMOS_REMOTE/password`, `api` vault). `install.sh` runs `op inject` (via the `SVC_API` service account, which has read access) to write it to `~/.config/cmos-remote/env` (0600), loaded by the unit's `EnvironmentFile`. The `SVC_API` service account is read-only, so the item must be created once with a personal 1Password login that can write to the `api` vault:
 ```bash
@@ -195,22 +244,90 @@ Widget updates automatically when:
 ## Development Notes
 
 ### Adding New Actions
-1. Add endpoint to `server/main.py`
-2. Add method to `network/ApiClient.kt`
-3. Add action to `data/Models.kt` `RemoteAction` enum
-4. Add button in `MainActivity.kt` and `widget/RemoteWidget.kt`
+1. Add the command wrapper to `server/controls.py` (parser separate from runner)
+2. Add the endpoint to `server/main.py`
+3. Add tests: parser cases in `tests/test_controls.py`, endpoint in `tests/test_main.py`
+4. If the response has a new shape, add it to `spec/wire-payloads.json` and assert
+   it in both `tests/test_wire_payloads.py` and `ModelsTest.kt`
+5. Add method to `network/ApiClient.kt` and a case to `ApiClientTest.kt`
+6. Add action to `data/Models.kt` `RemoteAction` enum
+7. Add button in `MainActivity.kt` and `widget/RemoteWidget.kt`
 
 ### Changing Server Port
 1. Update the port in `server/cmos-remote.service` (ExecStart) and re-run `./server/install.sh`
 2. Update the firewall rule in `~/arch/config/nftables/nftables.conf` and reload nftables
 3. Update `DEFAULT_SERVER_PORT` in `data/SettingsManager.kt`
 
+### Tests
+
+142 tests: 104 on the server (pytest, 100% line coverage, gate at 85), 38 in the
+app (JVM unit tests, no device or emulator needed).
+
+| Suite | Covers |
+|-------|--------|
+| `server/tests/test_auth.py` | HMAC vectors, freshness window, replay, bad signature, open mode |
+| `server/tests/test_controls.py` | output parsers against captured real output, every degraded path, the `run()` boundary |
+| `server/tests/test_main.py` | endpoints through a TestClient, auth dependency, response signing, 500 mapping |
+| `server/tests/test_wire_payloads.py` | response models against `spec/wire-payloads.json` |
+| `server/tests/test_supply_chain.py` | every direct requirement is in the hash-locked lock file |
+| `HmacInterceptorTest.kt` | the same HMAC vectors, plus response verification and impostor rejection |
+| `ApiClientTest.kt` | requests, decoding, failure reporting, auth wiring, against MockWebServer |
+| `ModelsTest.kt` | the same wire payloads decoded into the app's data classes |
+
+**The two contract files under `spec/` are the point.** The HMAC scheme and the
+response payloads exist twice, in Python and Kotlin, with nothing at build time
+tying them together. Both suites assert against `spec/hmac-vectors.json` and
+`spec/wire-payloads.json`, so a one-sided change fails CI instead of showing up
+as an unexplained "Disconnected". Verified by mutation: flipping
+`method.upper()` to `method.lower()` on either side fails 3 tests there.
+
+**Documented exemptions** (Android-framework-bound, would need Robolectric or an
+instrumented test run on a device, and none of them hold logic that fails
+silently):
+
+| Module | Why exempt |
+|--------|-----------|
+| `MainActivity.kt`, `ui/theme/Theme.kt` | Compose UI |
+| `widget/RemoteWidget.kt`, `widget/WidgetActionReceiver.kt` | Glance widget and BroadcastReceiver |
+| `RemoteViewModel.kt` | ViewModel plus `android.util.Log` |
+| `data/SettingsManager.kt` | DataStore, needs a Context |
+| `network/NetworkMonitor.kt` | ConnectivityManager callbacks |
+
+## Decision Log
+
+Dated, with the reason. Add to this rather than rewriting it.
+
+- **2026-08-04 - server split into `main.py` / `auth.py` / `controls.py`.** The
+  original single module bound `AUTH_TOKEN` at import time, so testing auth
+  meant reloading the module with a patched environment. `Authenticator` takes
+  its token and clock as arguments instead, which is what made the freshness and
+  replay tests possible.
+- **2026-08-04 - the app-level dependency is `Depends(authenticate)`, a wrapper,
+  not `Depends(authenticator)`.** FastAPI captures the dependency object when the
+  app is constructed, so passing the instance directly made the active
+  Authenticator unswappable in tests.
+- **2026-08-04 - `spec/*.json` as cross-language contracts.** Chosen over
+  generating the Kotlin models from the OpenAPI schema: two hand-written
+  implementations plus a shared assertion is far less machinery, and the failure
+  it prevents (silent field or format drift) is the only one that mattered.
+- **2026-08-04 - CI builds Android with `setup-java` plus `setup-android`, not
+  the nix flake.** The flake is the local toolchain on the Arch host, but CI
+  should exercise the path the build docs give outside contributors.
+- **2026-08-04 - R8 stays off for release builds.** Compose and Glance need
+  keep rules this project has never tested on a device; shipping a shrunk APK
+  untested is a worse trade than a larger one.
+- **2026-08-04 - deps installed from a hash-locked `requirements.lock` with
+  `--require-hashes`.** The server holds a shared secret and runs inside the
+  desktop session; a swapped wheel should fail the install, not land on the host.
+- **2026-08-04 - no CHANGELOG.md.** Git history plus tagged GitHub releases
+  serve that purpose; the release workflow generates notes from commits.
+
 ## Additional Documentation
 
 The `docs/` folder contains detailed development documentation:
 
 - `docs/architecture.md` - System architecture, data flow diagrams, security model
-- `docs/android-dev.md` - Android development setup, ADB, Gradle commands
+- `docs/android-dev.md` - Android SDK setup options, ADB, Gradle commands, release signing, CI
 - `docs/adding-features.md` - Step-by-step guide for adding new remote actions
 - `docs/troubleshooting.md` - Common issues, debug commands, log locations
 

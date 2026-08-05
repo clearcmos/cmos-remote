@@ -1,0 +1,36 @@
+# Tool configuration only. The server is not a distributable package: it is a
+# set of modules run by uvicorn from the venv that install.sh creates, so there
+# is no [project] table and no build backend here.
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4"]
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+no_implicit_optional = true
+warn_unused_ignores = true
+warn_return_any = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Import mode "prepend" plus tests/__init__.py keeps `import main` working the
+# same way uvicorn resolves it, from the server directory.
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["."]
+omit = ["tests/*", ".venv/*"]
+
+[tool.coverage.report]
+# Ratchet upward, never down.
+fail_under = 85
+show_missing = true
+exclude_also = [
+    # The uvicorn entrypoint only runs when the module is executed directly.
+    'if __name__ == "__main__":',
+]

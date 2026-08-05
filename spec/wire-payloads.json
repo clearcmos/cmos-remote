@@ -1,0 +1,42 @@
+{
+  "_comment": [
+    "Canonical response payloads for the CMOS Remote API.",
+    "The server builds these with pydantic models (server/main.py) and the app",
+    "decodes them into kotlinx.serialization data classes (data/Models.kt). The",
+    "two sets of field names are written by hand and nothing else connects them,",
+    "so both test suites assert against this file: rename a field on one side",
+    "without the other and CI fails instead of the app silently showing stale",
+    "or default values."
+  ],
+  "health": {
+    "status": "ok",
+    "service": "cmos-remote"
+  },
+  "status_connected": {
+    "muted": false,
+    "volume": 74,
+    "bluetooth_on": true,
+    "bluetooth_connected": "Soundcore Life Q30"
+  },
+  "status_bluetooth_off": {
+    "muted": true,
+    "volume": 0,
+    "bluetooth_on": false,
+    "bluetooth_connected": null
+  },
+  "action_muted": {
+    "success": true,
+    "message": "Muted",
+    "new_state": true
+  },
+  "action_without_state": {
+    "success": true,
+    "message": "Screen off triggered",
+    "new_state": null
+  },
+  "volume_set": {
+    "success": true,
+    "level": 42,
+    "message": "Volume set to 42%"
+  }
+}

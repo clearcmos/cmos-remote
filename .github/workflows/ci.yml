@@ -1,0 +1,95 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # Floor through current stable. The floor is 3.11 because main.py uses
+        # `X | None` annotations evaluated by pydantic at runtime.
+        python-version: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        working-directory: server
+        # Runtime deps too: mypy needs fastapi and pydantic to resolve imports.
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+      - name: Lint
+        working-directory: server
+        run: ruff check .
+      - name: Format check
+        working-directory: server
+        run: ruff format --check .
+      - name: Typecheck
+        working-directory: server
+        run: mypy .
+      - name: Tests with coverage gate
+        working-directory: server
+        # Threshold lives in pyproject.toml (fail_under). Ratchet up, never down.
+        run: |
+          coverage run -m pytest
+          coverage report
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      # Deliberately the plain SDK path rather than the optional nix flake in
+      # android/: CI then exercises the same toolchain the build docs tell
+      # outside contributors to install.
+      - uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          packages: platform-tools platforms;android-35 build-tools;35.0.0
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - name: Unit tests
+        working-directory: android
+        # Includes the HMAC parity tests, which assert the same
+        # spec/hmac-vectors.json the server suite does.
+        run: ./gradlew testDebugUnitTest --no-daemon
+      - name: Android Lint
+        working-directory: android
+        run: ./gradlew lintDebug --no-daemon
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-test-report
+          path: android/app/build/reports/
+
+  ci-ok:
+    needs: [server, android]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: echo ok

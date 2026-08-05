@@ -6,9 +6,17 @@ CMOS Remote uses a client-server architecture with HTTP REST API communication o
 
 ## Components
 
-### 1. FastAPI Server (`server/main.py`)
+### 1. FastAPI Server (`server/`)
 
 Runs on the cmos desktop host (Arch Linux) as a systemd **user** service (required for audio/Bluetooth access).
+
+Three modules:
+
+| Module | Responsibility |
+|--------|----------------|
+| `main.py` | FastAPI app, request/response models, endpoints |
+| `auth.py` | HMAC request verification and response signing |
+| `controls.py` | system command wrappers, split into pure parsers and runners |
 
 **Why user-level service?**
 - PipeWire runs per-user, requires same user context for `wpctl`
@@ -26,11 +34,13 @@ POST /bluetooth  → {"success": bool, "message": str, "new_state": bool}
 POST /screen-off → {"success": bool, "message": str}  (triggers Meta+F10 equivalent)
 ```
 
-**Command Execution:**
-- Uses full paths for commands (`/run/current-system/sw/bin/wpctl`) because systemd services have minimal PATH
-- Subprocess calls with timeouts to prevent hangs
-- Bluetooth toggle has 30s timeout (connection takes time)
-- Screen-off triggers systemd user service (`screen-off-toggle.service`)
+**Command Execution** (`controls.py`):
+- Commands are resolved to absolute paths at import (`controls.resolve()`): PATH first, then known fallbacks, then the bare name. The systemd unit sets a minimal PATH, and resolving at runtime keeps the server portable across distros instead of hardcoding one layout.
+- Every command goes through a single `run()` choke point, so tests can replace one function instead of patching `subprocess`.
+- Output parsing is separated from execution (`parse_volume`, `parse_muted`, `parse_powered`, `parse_connected_device`). Parsers are what break when a tool changes its output, and they are tested against captured real output.
+- Subprocess calls carry timeouts to prevent hangs; the Bluetooth toggle gets 30s because connecting is not instant.
+- Failures degrade rather than raise: a broken command reports 0 / False / None and logs. That keeps one dead endpoint from taking down the rest, and is why the parsers are covered by tests.
+- Screen-off triggers a systemd user service (`screen-off-toggle.service`).
 
 ### 2. Android App
 
@@ -132,6 +142,20 @@ RemoteWidget (GlanceAppWidget)
 | `ACCESS_NETWORK_STATE` | Detect WiFi connectivity |
 
 The app requests no location or WiFi-state permissions. Connection is decided by connectivity plus the authenticated health check, not by network name.
+
+### The wire format is a shared contract
+
+The HMAC scheme and the response payloads are implemented twice, once in Python
+and once in Kotlin, with nothing at build time connecting them. Two files under
+`spec/` are the contract, and both test suites assert against them:
+
+| File | Pins |
+|------|------|
+| `spec/hmac-vectors.json` | the exact strings that get signed, and their signatures for a fixed token |
+| `spec/wire-payloads.json` | the JSON field names and null handling of every response |
+
+A change to either format that is not mirrored on the other side fails CI,
+rather than surfacing later as an unexplained "Disconnected" in the app.
 
 ## Data Flow
 

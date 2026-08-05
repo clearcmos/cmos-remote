@@ -11,7 +11,7 @@ import javax.crypto.spec.SecretKeySpec
 
 /**
  * Signs each request and verifies each response using an HMAC-SHA256 shared
- * secret, mirroring the server's scheme in server/main.py.
+ * secret, mirroring the server's scheme in server/auth.py.
  *
  * Request:  X-Auth-Sig  = HMAC(token, "ts\nnonce\nMETHOD\npath\nsha256(body)")
  * Response: X-Resp-Sig  = HMAC(token, "nonce\nresp_ts\nstatus\nsha256(body)")
@@ -19,17 +19,26 @@ import javax.crypto.spec.SecretKeySpec
  * The secret never travels on the wire. A response without a valid signature is
  * treated as a hard failure (possible impostor at the same address), so the app
  * never trusts or acts on it.
+ *
+ * Both message formats are pinned by spec/hmac-vectors.json, which this module's
+ * tests and the server's tests assert against independently.
+ *
+ * @param clock seconds since the epoch; injectable so tests can pin a timestamp.
+ * @param nonceSource hex nonce per request; injectable for the same reason.
  */
-class HmacInterceptor(token: String) : Interceptor {
+class HmacInterceptor(
+    token: String,
+    private val clock: () -> Long = { System.currentTimeMillis() / 1000L },
+    private val nonceSource: () -> String = ::randomNonce,
+) : Interceptor {
 
     private val key = token.toByteArray(Charsets.UTF_8)
-    private val secureRandom = SecureRandom()
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
 
-        val ts = (System.currentTimeMillis() / 1000L).toString()
-        val nonce = ByteArray(16).also { secureRandom.nextBytes(it) }.toHex()
+        val ts = clock().toString()
+        val nonce = nonceSource()
 
         val bodyBytes = original.body?.let { body ->
             Buffer().use { buffer ->
@@ -38,18 +47,15 @@ class HmacInterceptor(token: String) : Interceptor {
             }
         } ?: ByteArray(0)
 
-        val reqMsg = listOf(
-            ts,
-            nonce,
-            original.method.uppercase(),
-            original.url.encodedPath,
-            sha256Hex(bodyBytes),
-        ).joinToString("\n")
-
         val signed = original.newBuilder()
             .header("X-Auth-Ts", ts)
             .header("X-Auth-Nonce", nonce)
-            .header("X-Auth-Sig", hmacHex(reqMsg))
+            .header(
+                "X-Auth-Sig",
+                hmacHex(
+                    requestMessage(ts, nonce, original.method, original.url.encodedPath, bodyBytes),
+                ),
+            )
             .build()
 
         val response = chain.proceed(signed)
@@ -62,9 +68,7 @@ class HmacInterceptor(token: String) : Interceptor {
         }
 
         val respBody = response.peekBody(MAX_BODY_BYTES).bytes()
-        val expected = hmacHex(
-            listOf(nonce, respTs, response.code.toString(), sha256Hex(respBody)).joinToString("\n")
-        )
+        val expected = hmacHex(responseMessage(nonce, respTs, response.code, respBody))
         if (!MessageDigest.isEqual(expected.toByteArray(), respSig.toByteArray())) {
             response.close()
             throw IOException("invalid response signature (possible impostor)")
@@ -79,17 +83,37 @@ class HmacInterceptor(token: String) : Interceptor {
         return mac.doFinal(msg.toByteArray(Charsets.UTF_8)).toHex()
     }
 
-    private fun sha256Hex(data: ByteArray): String =
-        MessageDigest.getInstance("SHA-256").digest(data).toHex()
-
-    private fun ByteArray.toHex(): String {
-        val sb = StringBuilder(size * 2)
-        for (b in this) sb.append(HEX[(b.toInt() ushr 4) and 0xF]).append(HEX[b.toInt() and 0xF])
-        return sb.toString()
-    }
-
     companion object {
         private const val MAX_BODY_BYTES = 1L * 1024 * 1024
         private val HEX = "0123456789abcdef".toCharArray()
+        private val secureRandom = SecureRandom()
+
+        /** The string a request signature is computed over. */
+        fun requestMessage(
+            ts: String,
+            nonce: String,
+            method: String,
+            path: String,
+            body: ByteArray,
+        ): String = listOf(ts, nonce, method.uppercase(), path, sha256Hex(body)).joinToString("\n")
+
+        /** The string a response signature is computed over. */
+        fun responseMessage(
+            nonce: String,
+            respTs: String,
+            status: Int,
+            body: ByteArray,
+        ): String = listOf(nonce, respTs, status.toString(), sha256Hex(body)).joinToString("\n")
+
+        fun sha256Hex(data: ByteArray): String =
+            MessageDigest.getInstance("SHA-256").digest(data).toHex()
+
+        fun randomNonce(): String = ByteArray(16).also { secureRandom.nextBytes(it) }.toHex()
+
+        private fun ByteArray.toHex(): String {
+            val sb = StringBuilder(size * 2)
+            for (b in this) sb.append(HEX[(b.toInt() ushr 4) and 0xF]).append(HEX[b.toInt() and 0xF])
+            return sb.toString()
+        }
     }
 }

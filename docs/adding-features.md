@@ -13,56 +13,66 @@ Adding a new action requires changes to:
 
 ## Example: Adding a "Play/Pause" Action
 
-### Step 1: Server Endpoint
+### Step 1: Server Command Wrapper
 
-Edit `server/main.py`:
+Edit `server/controls.py`. Keep parsing separate from running: the parser is what
+breaks when a tool changes its output, and it is what gets tested.
 
 ```python
-# Add command path
-PLAYERCTL = "/run/current-system/sw/bin/playerctl"
+# Resolved at import, not hardcoded, so the server stays portable
+PLAYERCTL = resolve("playerctl", "/usr/bin/playerctl")
 
-# Add helper function
+
+def parse_playing(stdout: str) -> bool:
+    """`playerctl status` prints Playing / Paused / Stopped."""
+    return stdout.strip() == "Playing"
+
+
 def toggle_play_pause() -> tuple[bool, bool]:
     """Toggle media play/pause. Returns (success, is_playing)."""
     try:
-        # Get current status
-        result = subprocess.run(
-            [PLAYERCTL, "status"],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-        is_playing = result.stdout.strip() == "Playing"
-
-        # Toggle
-        subprocess.run(
-            [PLAYERCTL, "play-pause"],
-            check=True,
-            timeout=5
-        )
-
+        is_playing = parse_playing(run([PLAYERCTL, "status"]).stdout)
+        run([PLAYERCTL, "play-pause"], check=True)
         return True, not is_playing
     except Exception as e:
         logger.error(f"Failed to toggle play/pause: {e}")
         return False, False
+```
 
-# Add endpoint
+### Step 1b: Server Endpoint
+
+Edit `server/main.py`:
+
+```python
 @app.post("/playpause", response_model=ActionResponse)
-async def toggle_play_pause_endpoint():
+async def toggle_play_pause_endpoint() -> ActionResponse:
     """Toggle media play/pause."""
-    success, is_playing = toggle_play_pause()
+    success, is_playing = controls.toggle_play_pause()
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to toggle play/pause")
+    return ActionResponse(
+        success=True,
+        message="Playing" if is_playing else "Paused",
+        new_state=is_playing,
+    )
+```
 
-    if success:
-        return ActionResponse(
-            success=True,
-            message="Playing" if is_playing else "Paused",
-            new_state=is_playing
-        )
-    else:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to toggle play/pause"
-        )
+### Step 1c: Server Tests
+
+Add parser cases to `server/tests/test_controls.py` (real captured output, plus
+the degraded cases) and an endpoint case to `tests/test_main.py`. The coverage
+gate is 85%, so an untested endpoint will fail CI:
+
+```python
+def test_parse_playing():
+    assert controls.parse_playing("Playing\n") is True
+    assert controls.parse_playing("Paused\n") is False
+    assert controls.parse_playing("") is False
+
+
+def test_playpause_endpoint(open_client, monkeypatch):
+    monkeypatch.setattr(controls, "toggle_play_pause", lambda: (True, True))
+    assert open_client.post("/playpause").json()["message"] == "Playing"
 ```
 
 ### Step 2: Update Status Response (Optional)
@@ -246,18 +256,27 @@ Edit `AndroidManifest.xml` to add the new action:
 
 ### Step 8: Test
 
-1. Restart server: `systemctl restart cmos-remote`
-2. Test endpoint: `curl -X POST http://192.168.1.2:8201/playpause`
-3. Rebuild app: `./gradlew installDebug`
-4. Test in app and widget
+1. Run the suites: `make check` (server checks plus app unit tests, lint, build)
+2. Redeploy the server: `./server/install.sh` (idempotent; also restarts it)
+3. Test the endpoint by hand: `curl -X POST http://192.168.1.2:8201/playpause`
+   (with auth enabled this returns 401 unless you sign the request, so use the
+   app or temporarily unset the token)
+4. Rebuild the app: `./gradlew installDebug`
+5. Test in app and widget
 
-## NixOS Dependencies
+## Host Dependencies
 
-If your new feature needs additional system commands, ensure they're available:
+If your new feature needs additional system commands, make sure they are
+installed on the server host and resolvable by the service:
 
-1. Add package to system: Edit `/etc/nixos/modules/desktop/packages.nix`
-2. Find full path: `which playerctl` → `/run/current-system/sw/bin/playerctl`
-3. Use full path in server code
+1. Install the package with your distro's package manager. On the author's Arch
+   host that means declaring it in the `~/arch` config repo and deploying with
+   its `setup.sh`.
+2. Confirm the command is on the unit's `PATH` (`Environment=PATH=` in
+   `server/cmos-remote.service` covers `~/.local/bin` and `/usr/bin`):
+   `command -v playerctl`
+3. Resolve it in server code with `_resolve("playerctl", "/usr/bin/playerctl")`
+   rather than hardcoding a path, so the server stays portable across distros.
 
 ## Testing Endpoints
 
@@ -282,6 +301,9 @@ curl -X POST http://192.168.1.2:8201/playpause
 
 - [ ] Server endpoint added and tested with curl
 - [ ] Server logs show no errors
+- [ ] Parser and endpoint tests added (`server/tests/`), `make server-check` green
+- [ ] New response shape added to `spec/wire-payloads.json` and asserted on both sides
+- [ ] App tests added or extended, `make android-test` green
 - [ ] RemoteAction enum updated
 - [ ] RemoteState updated (if tracking state)
 - [ ] ApiClient method added
@@ -312,7 +334,7 @@ Volume control differs from simple toggle buttons - it uses a slider with deboun
 
 ### Screen Off (System Service)
 
-Screen Off demonstrates integrating with NixOS systemd user services.
+Screen Off demonstrates integrating with a systemd user service on the host.
 
 **Key differences from direct command pattern:**
 - **No new_state**: Screen off is a one-shot action, doesn't toggle state
@@ -328,5 +350,6 @@ Screen Off demonstrates integrating with NixOS systemd user services.
 - `widget/RemoteWidget.kt`: Added `SCREEN_OFF` case (exhaustive when)
 - `widget/WidgetActionReceiver.kt`: Added `SCREEN_OFF` case (exhaustive when)
 
-**NixOS side:**
-- `/etc/nixos/modules/desktop/screen-off.nix`: Defines the systemd user services
+**Host side (deployed from `~/arch`, not this repo):**
+- `~/arch/config/shell/screen-off-toggle.sh`: the script itself
+- `~/arch/config/systemd/user/screen-off-toggle.service`: the systemd user unit

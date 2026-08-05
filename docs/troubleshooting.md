@@ -242,11 +242,13 @@ java -version
 
 ### "SDK location not found"
 
-Ensure you're in nix develop shell:
+Gradle cannot find the Android SDK. Point it at one:
 ```bash
-nix develop
+export ANDROID_HOME="$HOME/Android/Sdk"   # or write sdk.dir into android/local.properties
 echo $ANDROID_HOME
 ```
+If you use the optional nix dev shell, `nix develop` sets this for you. See
+`docs/android-dev.md` for the SDK setup options.
 
 ### ADB Device Not Found
 

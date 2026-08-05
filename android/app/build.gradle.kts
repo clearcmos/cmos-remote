@@ -1,8 +1,20 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
+}
+
+// Release signing is opt-in. With android/keystore.properties present (never
+// committed - see android/.gitignore) `assembleRelease` produces a signed APK;
+// without it the release build stays unsigned, so a clean clone still builds.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { load(it) }
+    }
 }
 
 android {
@@ -14,12 +26,29 @@ android {
         applicationId = "com.clearcmos.cmosremote"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        // Overridable from the release workflow (-PversionCode / -PversionName)
+        // so a tagged release stamps its own version without editing this file.
+        versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
+        versionName = (project.findProperty("versionName") as String?) ?: "1.0"
+    }
+
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
         release {
+            // Null when no keystore.properties is present: unsigned release build.
+            signingConfig = signingConfigs.findByName("release")
+            // R8 stays off: Compose and Glance survive it only with rules this
+            // project has never tested on a device. Turn it on deliberately.
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -40,6 +69,19 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    testOptions {
+        unitTests.all {
+            // The wire format is pinned by files under spec/ that the server
+            // test suite asserts against too; hand the directory to the tests
+            // as an absolute path so they do not depend on the working
+            // directory Gradle happens to pick.
+            it.systemProperty("spec.dir", rootProject.file("../spec").absolutePath)
+            it.testLogging {
+                events("failed", "skipped")
+            }
+        }
     }
 }
 
@@ -81,4 +123,9 @@ dependencies {
 
     // WorkManager for background sync
     implementation("androidx.work:work-runtime-ktx:2.10.0")
+
+    // Unit tests (JVM, no device or emulator)
+    testImplementation(kotlin("test"))
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }

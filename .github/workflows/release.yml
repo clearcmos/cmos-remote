@@ -1,0 +1,112 @@
+name: release
+
+# Tag a version to publish a signed APK:
+#   git tag v1.0.1 && git push origin v1.0.1
+#
+# Requires four repository secrets (see docs/android-dev.md, "Release Build"):
+#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+#   ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # creates the GitHub release and uploads the APK
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          packages: platform-tools platforms;android-35 build-tools;35.0.0
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      - name: Check signing secrets are present
+        # Fail here rather than silently publishing an unsigned APK that no
+        # phone will install as an upgrade.
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "ANDROID_KEYSTORE_BASE64 is not set; cannot sign the release." >&2
+            exit 1
+          fi
+
+      - name: Materialize the keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          printf '%s' "$KEYSTORE_B64" | base64 -d > android/release.jks
+          umask 077
+          cat > android/keystore.properties <<EOF
+          storeFile=release.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Build signed release APK
+        working-directory: android
+        env:
+          TAG: ${{ github.ref_name }}
+        # versionName is the tag without its leading v; versionCode has to
+        # increase monotonically for Android to accept an upgrade, so it comes
+        # from the workflow run number.
+        run: |
+          ./gradlew assembleRelease --no-daemon \
+            -PversionName="${TAG#v}" -PversionCode="${{ github.run_number }}"
+
+      - name: Stage artifacts
+        env:
+          TAG: ${{ github.ref_name }}
+        # AGP names the output app-release-unsigned.apk when no signing config
+        # applied. Fail on that rather than publish an APK no phone can install.
+        run: |
+          apk=$(find android/app/build/outputs/apk/release -name '*.apk' -print -quit)
+          if [ -z "$apk" ]; then
+            echo "no release APK was produced" >&2
+            exit 1
+          fi
+          case "$apk" in
+            *unsigned*)
+              echo "release APK is unsigned: $apk" >&2
+              exit 1
+              ;;
+          esac
+          mkdir -p dist
+          cp "$apk" "dist/cmos-remote-${TAG}.apk"
+          (cd dist && sha256sum "cmos-remote-${TAG}.apk" > "cmos-remote-${TAG}.apk.sha256")
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" \
+            --repo "${{ github.repository }}" \
+            --title "$TAG" \
+            --generate-notes \
+            "dist/cmos-remote-${TAG}.apk" \
+            "dist/cmos-remote-${TAG}.apk.sha256"
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/release.jks android/keystore.properties
