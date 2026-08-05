@@ -352,6 +352,14 @@ Dated, with the reason. Add to this rather than rewriting it.
   rewrote by matching that exact literal. The installer now substitutes the
   placeholder and fails loudly if any remains.
 
+- **2026-08-05 - `stub_commands` also stubs `controls.available`.** Once the
+  endpoints started refusing to run a helper that is not installed, the
+  happy-path endpoint tests silently depended on the host: green on a desktop
+  with wpctl and bt-toggle, 503 on a CI runner without them. CI caught it on the
+  first push. The fixture now declares "a host where every helper exists", and
+  `env -i PATH=/nonexistent .venv/bin/python -m pytest` reproduces a bare runner
+  locally if you need to check that again.
+
 ### Known upgrade chains (blocked, not forgotten)
 
 Dependabot's first run found two bumps that need a toolchain move, which CI

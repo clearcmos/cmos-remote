@@ -31,11 +31,17 @@ def vectors() -> dict:
 
 @pytest.fixture
 def stub_commands(monkeypatch):
-    """Every external command succeeds and reports a plausible state.
+    """A host where every helper is installed and every command succeeds.
 
-    Matches spec/wire-payloads.json "status_connected": unmuted, volume 74,
-    Bluetooth on with the Q30 connected.
+    Reports the state in spec/wire-payloads.json "status_connected": unmuted,
+    volume 74, Bluetooth on with the Q30 connected.
+
+    `available` is stubbed too, deliberately. Without it these tests would pass
+    or fail depending on whether the machine running them happens to have wpctl
+    and bt-toggle installed: green on the author's desktop, 503 on a CI runner.
+    Tests that want the missing-helper path override `available` themselves.
     """
+    monkeypatch.setattr(controls, "available", lambda command: True)
 
     def fake(args, timeout=5, check=False):
         if args[0] == controls.WPCTL and "get-volume" in args:
