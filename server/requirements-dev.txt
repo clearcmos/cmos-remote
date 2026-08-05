@@ -1,6 +1,6 @@
 # Dev tooling for the server, wired in .github/workflows/ci.yml.
 # Configuration for all of it lives in pyproject.toml.
-# Floors rather than hashes: this set never gets installed on the cmos host,
+# Floors rather than hashes: this set never gets installed on the desktop host,
 # only in CI and in a developer's venv.
 ruff>=0.16.1
 mypy>=1.18.0

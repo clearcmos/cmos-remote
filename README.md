@@ -1,6 +1,6 @@
-# CMOS Remote
+# Desk Remote
 
-Android remote control app for the cmos desktop (Arch Linux), with home screen widget support.
+Android remote control app for the desktop host (Arch Linux), with home screen widget support.
 
 ## Features
 
@@ -35,7 +35,7 @@ helper scripts that are not in this repo; see
                         Home LAN (192.168.1.x)
 ```
 
-The server runs as a systemd **user** service on the cmos host, so it shares the
+The server runs as a systemd **user** service on the desktop host, so it shares the
 logged-in session's PipeWire and D-Bus and can start other user services (screen
 off) directly.
 
@@ -47,7 +47,7 @@ off) directly.
 - PipeWire/WirePlumber for audio control
 - BlueZ for Bluetooth control, plus the `bt-toggle` helper on PATH (deployed from `~/arch`)
 - Port 8201 open on the LAN
-- For auth (recommended): any way to set `CMOS_REMOTE_TOKEN` (pass it to `install.sh`, see below). The author's setup provisions it from 1Password, which is optional.
+- For auth (recommended): any way to set `DESKREMOTE_TOKEN` (pass it to `install.sh`, see below). The author's setup provisions it from 1Password, which is optional.
 
 ### Android App
 - Android 8.0+ (API 26)
@@ -64,8 +64,8 @@ off) directly.
 ./server/install.sh
 
 # Check status and logs
-systemctl --user status cmos-remote
-journalctl --user -u cmos-remote -f
+systemctl --user status deskremote
+journalctl --user -u deskremote -f
 
 # Test (only works before auth is enabled; once a token is set these return 401)
 curl http://127.0.0.1:8201/health
@@ -82,15 +82,15 @@ sudo install -m644 ~/arch/config/nftables/nftables.conf /etc/nftables.conf && su
 Create the shared secret in 1Password (`api` vault) with a personal login that can write to it (the `SVC_API` service account is read-only), then read it back to enter in the app:
 
 ```bash
-op item create --category=password --title=CMOS_REMOTE --vault=api --generate-password='letters,digits,32'
-op read op://api/CMOS_REMOTE/password
+op item create --category=password --title=DESKREMOTE --vault=api --generate-password='letters,digits,32'
+op read op://api/DESKREMOTE/password
 ```
 
-Then re-run `./server/install.sh` (it injects the token into `~/.config/cmos-remote/env` via the `SVC_API` service account and restarts the service). Enter the same value in the app's settings in step 4. If you skip this, the server runs without auth.
+Then re-run `./server/install.sh` (it injects the token into `~/.config/deskremote/env` via the `SVC_API` service account and restarts the service). Enter the same value in the app's settings in step 4. If you skip this, the server runs without auth.
 
 ### 3. Install the App
 
-Either install a published APK from [Releases](https://github.com/clearcmos/cmos-remote/releases)
+Either install a published APK from [Releases](https://github.com/clearcmos/deskremote/releases)
 (Android will ask you to allow installs from an unknown source), or build it
 yourself:
 
@@ -113,7 +113,7 @@ cd android
 
 1. Long-press on home screen
 2. Select "Widgets"
-3. Find "CMOS Remote" and drag to home screen
+3. Find "Desk Remote" and drag to home screen
 
 ## Configuration
 
@@ -141,7 +141,7 @@ Settings are editable in-app (tap the gear icon). Defaults live in `SettingsMana
 ## Project Structure
 
 ```
-cmos-remote/
+deskremote/
 ├── server/
 │   ├── main.py              # FastAPI app, models, endpoints
 │   ├── auth.py              # HMAC verification + response signing
@@ -151,7 +151,7 @@ cmos-remote/
 │   ├── requirements.lock    # hash-locked full set (what install.sh installs)
 │   ├── requirements-dev.txt # ruff, mypy, pytest, coverage
 │   ├── pyproject.toml       # ruff, mypy, pytest, coverage config
-│   ├── cmos-remote.service  # systemd user unit (canonical)
+│   ├── deskremote.service  # systemd user unit (canonical)
 │   └── install.sh           # venv + service installer (idempotent)
 ├── android/
 │   ├── app/src/main/
@@ -218,7 +218,7 @@ no dependency on the author's config repo.
 **Set your own values**
 ```bash
 # Server: any random token works; the app just has to match it
-CMOS_REMOTE_TOKEN="$(openssl rand -hex 32)" ./server/install.sh
+DESKREMOTE_TOKEN="$(openssl rand -hex 32)" ./server/install.sh
 ```
 In the app, tap the gear icon and set the server IP, port, and that token. No
 rebuild needed; the APK is not tied to an address. Skip the token entirely and
@@ -265,7 +265,7 @@ Two categories, and the difference matters:
 
 1. Check the phone is on the same network as the server (cellular counts as off-LAN)
 2. Verify the auth token in the app matches the server's
-3. Verify server is running: `systemctl --user status cmos-remote`
+3. Verify server is running: `systemctl --user status deskremote`
 4. Confirm the firewall is open (port 8201) and the service is reachable from the LAN
 
 ### Mute doesn't work
@@ -276,12 +276,12 @@ Two categories, and the difference matters:
 ### Volume slider doesn't work
 
 1. Test manually: `wpctl set-volume @DEFAULT_AUDIO_SINK@ 50%`
-2. Check logs: `journalctl --user -u cmos-remote -f`
+2. Check logs: `journalctl --user -u deskremote -f`
 
 ### Bluetooth toggle fails
 
 1. Test bt-toggle script: `bt-toggle`
-2. Check logs: `journalctl --user -u cmos-remote -f`
+2. Check logs: `journalctl --user -u deskremote -f`
 
 ### Screen Off doesn't work
 

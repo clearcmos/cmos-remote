@@ -1,6 +1,6 @@
-package com.clearcmos.cmosremote.network
+package com.clearcmos.deskremote.network
 
-import com.clearcmos.cmosremote.Spec
+import com.clearcmos.deskremote.Spec
 import kotlinx.coroutines.runBlocking
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse

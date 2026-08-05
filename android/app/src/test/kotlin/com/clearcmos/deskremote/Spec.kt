@@ -1,4 +1,4 @@
-package com.clearcmos.cmosremote
+package com.clearcmos.deskremote
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject

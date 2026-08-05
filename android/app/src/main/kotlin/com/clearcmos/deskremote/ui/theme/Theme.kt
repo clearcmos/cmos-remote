@@ -1,4 +1,4 @@
-package com.clearcmos.cmosremote.ui.theme
+package com.clearcmos.deskremote.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -38,7 +38,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun CMOSRemoteTheme(
+fun DeskRemoteTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit

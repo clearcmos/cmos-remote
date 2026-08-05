@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Canonical response payloads for the CMOS Remote API.",
+    "Canonical response payloads for the Desk Remote API.",
     "The server builds these with pydantic models (server/main.py) and the app",
     "decodes them into kotlinx.serialization data classes (data/Models.kt). The",
     "two sets of field names are written by hand and nothing else connects them,",
@@ -10,7 +10,7 @@
   ],
   "health": {
     "status": "ok",
-    "service": "cmos-remote"
+    "service": "deskremote"
   },
   "status_connected": {
     "muted": false,

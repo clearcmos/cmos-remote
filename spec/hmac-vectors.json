@@ -1,13 +1,13 @@
 {
   "_comment": [
-    "Canonical HMAC test vectors for the CMOS Remote wire format.",
+    "Canonical HMAC test vectors for the Desk Remote wire format.",
     "server/auth.py and android/.../HmacInterceptor.kt implement this format",
     "independently; both test suites assert against this file, so a change on",
     "one side that is not mirrored on the other fails CI instead of showing up",
     "as an unexplained 'Disconnected' in the app.",
     "The token here is a fixed test value and is not a credential."
   ],
-  "token": "cmos-remote-test-token-not-a-real-secret",
+  "token": "deskremote-test-token-not-a-real-secret",
   "request_format": "HMAC-SHA256(token, ts + LF + nonce + LF + METHOD + LF + path + LF + sha256hex(body))",
   "response_format": "HMAC-SHA256(token, nonce + LF + resp_ts + LF + status + LF + sha256hex(body))",
   "requests": [
@@ -19,7 +19,7 @@
       "path": "/volume",
       "body": "{\"level\":42}",
       "message": "1750000000\n0123456789abcdef0123456789abcdef\nPOST\n/volume\n84a58a386880758e4e316c7797acbb76be0c5a9b544eaa789eb7f14c7999fdfe",
-      "signature": "7855124d865d53ec3db92f4aba730f62cd4b1461ed800532414ab61ee10c0319"
+      "signature": "b11dd0d4da54415456fcc9b0d92793a1b1376f972a45418a8f95042c9e338c6c"
     },
     {
       "name": "get_empty_body",
@@ -29,7 +29,7 @@
       "path": "/health",
       "body": "",
       "message": "1750000060\nfedcba9876543210fedcba9876543210\nGET\n/health\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "signature": "0afc473ce13250dff200d3a738a716c886572724716439a56ab23b69bc94583c"
+      "signature": "cb9af4ed1ecc0a6676fc2aa5c7f9613c2178c4d8ff88dc6c356a56d70dc0cef1"
     },
     {
       "name": "hyphenated_path",
@@ -39,7 +39,7 @@
       "path": "/screen-off",
       "body": "",
       "message": "1750000120\n00112233445566778899aabbccddeeff\nPOST\n/screen-off\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "signature": "cee4d53c9fb9a82b11693d9d79c890faa17a1cc556df3f7fe86885965782782d"
+      "signature": "fa6fff72646d14e8239f994ffe63ca4045d3aa1d50d236051a1cb51f9db06bdf"
     }
   ],
   "responses": [
@@ -48,9 +48,9 @@
       "nonce": "fedcba9876543210fedcba9876543210",
       "resp_ts": "1750000061",
       "status": 200,
-      "body": "{\"status\":\"ok\",\"service\":\"cmos-remote\"}",
-      "message": "fedcba9876543210fedcba9876543210\n1750000061\n200\n4b09aa5494d3525081512e41e9097c02514a9c0bc80a71776f54e97747411ce0",
-      "signature": "94682f087909a608b5b7a4e9b3978611d0e9902cc6b8290e5221358fd5580740"
+      "body": "{\"status\":\"ok\",\"service\":\"deskremote\"}",
+      "message": "fedcba9876543210fedcba9876543210\n1750000061\n200\n22f26f7abc794b9cec6b98c94677e3d7f29c6446c3980b7c39e2736cbc355eb7",
+      "signature": "e4a8e21a394d3452ec2201d3a7f286ca0f20f8638d3fda14b30d5aebac9475f8"
     },
     {
       "name": "unauthorized",
@@ -59,7 +59,7 @@
       "status": 401,
       "body": "{\"detail\":\"bad signature\"}",
       "message": "0123456789abcdef0123456789abcdef\n1750000001\n401\ne5dee3567bc77a0f5cece76dc0d156e9d42fad1bb69b1cb6ddd5d4d8e66cc427",
-      "signature": "19cfed10bd891f11aaa1655840a76c949131063c49ffe641d443691a9f532bde"
+      "signature": "b3a8357a6ae6fd891fabdf160d2b6c20f0549e0f88b0cece31f36e7a856f5fe2"
     }
   ]
 }

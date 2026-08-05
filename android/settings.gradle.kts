@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "CMOSRemote"
+rootProject.name = "DeskRemote"
 include(":app")

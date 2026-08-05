@@ -1,4 +1,4 @@
-package com.clearcmos.cmosremote.data
+package com.clearcmos.deskremote.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore

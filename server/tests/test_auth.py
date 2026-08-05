@@ -11,7 +11,7 @@ from fastapi import HTTPException
 
 import auth
 
-TOKEN = b"cmos-remote-test-token-not-a-real-secret"
+TOKEN = b"deskremote-test-token-not-a-real-secret"
 
 
 def make_auth(now: int = 1750000000, token: bytes = TOKEN, window: int = 60) -> auth.Authenticator:

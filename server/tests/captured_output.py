@@ -13,8 +13,8 @@ WPCTL_MUTED = "Volume: 0.74 [MUTED]\n"
 # `bluetoothctl show` (bluez 5.x), trimmed to the fields the parser reads
 BLUETOOTHCTL_SHOW_ON = """Controller AA:BB:CC:DD:EE:FF (public)
 \tManufacturer: 0x0002 (2)
-\tName: cmos
-\tAlias: cmos
+\tName: desktop
+\tAlias: desktop
 \tClass: 0x006c0104 (7078148)
 \tPowered: yes
 \tPowerState: on

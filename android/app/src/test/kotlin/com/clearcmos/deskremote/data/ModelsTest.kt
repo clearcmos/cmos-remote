@@ -1,6 +1,6 @@
-package com.clearcmos.cmosremote.data
+package com.clearcmos.deskremote.data
 
-import com.clearcmos.cmosremote.Spec
+import com.clearcmos.deskremote.Spec
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

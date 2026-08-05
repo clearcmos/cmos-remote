@@ -1,6 +1,6 @@
 # Adding New Features
 
-This guide explains how to add new remote control actions to CMOS Remote.
+This guide explains how to add new remote control actions to Desk Remote.
 
 ## Overview
 
@@ -211,7 +211,7 @@ Edit `widget/RemoteWidget.kt`:
 
 ```kotlin
 // Add action constant
-private const val ACTION_PLAY_PAUSE = "com.clearcmos.cmosremote.ACTION_PLAY_PAUSE"
+private const val ACTION_PLAY_PAUSE = "com.clearcmos.deskremote.ACTION_PLAY_PAUSE"
 
 // In RemoteWidgetContent, add button:
 Button(
@@ -246,10 +246,10 @@ Edit `AndroidManifest.xml` to add the new action:
 ```xml
 <receiver android:name=".widget.WidgetActionReceiver" android:exported="false">
     <intent-filter>
-        <action android:name="com.clearcmos.cmosremote.ACTION_MUTE" />
-        <action android:name="com.clearcmos.cmosremote.ACTION_BLUETOOTH" />
-        <action android:name="com.clearcmos.cmosremote.ACTION_PLAY_PAUSE" />
-        <action android:name="com.clearcmos.cmosremote.ACTION_REFRESH" />
+        <action android:name="com.clearcmos.deskremote.ACTION_MUTE" />
+        <action android:name="com.clearcmos.deskremote.ACTION_BLUETOOTH" />
+        <action android:name="com.clearcmos.deskremote.ACTION_PLAY_PAUSE" />
+        <action android:name="com.clearcmos.deskremote.ACTION_REFRESH" />
     </intent-filter>
 </receiver>
 ```
@@ -273,7 +273,7 @@ installed on the server host and resolvable by the service:
    host that means declaring it in the `~/arch` config repo and deploying with
    its `setup.sh`.
 2. Confirm the command is on the unit's `PATH` (`Environment=PATH=` in
-   `server/cmos-remote.service` covers `~/.local/bin` and `/usr/bin`):
+   `server/deskremote.service` covers `~/.local/bin` and `/usr/bin`):
    `command -v playerctl`
 3. Resolve it in server code with `_resolve("playerctl", "/usr/bin/playerctl")`
    rather than hardcoding a path, so the server stays portable across distros.

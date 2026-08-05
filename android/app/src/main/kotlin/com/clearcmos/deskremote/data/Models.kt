@@ -1,4 +1,4 @@
-package com.clearcmos.cmosremote.data
+package com.clearcmos.deskremote.data
 
 import kotlinx.serialization.Serializable
 

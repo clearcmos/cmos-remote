@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CMOS Remote Server - desktop control API for the Android remote app.
+"""Desk Remote Server - desktop control API for the Android remote app.
 
 Endpoints:
 - GET  /health     - health check for LAN detection
@@ -35,10 +35,10 @@ logger = logging.getLogger(__name__)
 
 # Shared secret from the environment (injected from 1Password by install.sh).
 # Unset means the server runs open, which install.sh warns about.
-authenticator = Authenticator(os.environ.get("CMOS_REMOTE_TOKEN", "").strip().encode())
+authenticator = Authenticator(os.environ.get("DESKREMOTE_TOKEN", "").strip().encode())
 
 if not authenticator.enabled:
-    logger.warning("CMOS_REMOTE_TOKEN not set - running WITHOUT authentication")
+    logger.warning("DESKREMOTE_TOKEN not set - running WITHOUT authentication")
 
 
 class StatusResponse(BaseModel):
@@ -96,13 +96,13 @@ async def authenticate(request: Request) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Startup and shutdown events."""
-    logger.info("CMOS Remote Server starting...")
+    logger.info("Desk Remote Server starting...")
     yield
-    logger.info("CMOS Remote Server shutting down...")
+    logger.info("Desk Remote Server shutting down...")
 
 
 app = FastAPI(
-    title="CMOS Remote Server",
+    title="Desk Remote Server",
     description="Desktop control API for Android remote app",
     version="1.0.0",
     lifespan=lifespan,
@@ -148,7 +148,7 @@ async def sign_response(request: Request, call_next: Callable[[Request], Awaitab
 @app.get("/health")
 async def health_check() -> dict[str, str]:
     """Health check endpoint for LAN detection."""
-    return {"status": "ok", "service": "cmos-remote"}
+    return {"status": "ok", "service": "deskremote"}
 
 
 @app.get("/status", response_model=StatusResponse)
@@ -199,7 +199,7 @@ async def toggle_bluetooth_endpoint() -> ActionResponse:
     require_command(
         controls.BT_TOGGLE,
         "This helper is not part of the repo; supply your own or drop this endpoint. "
-        "See README, 'Running This on Your Own Machine'.",
+        "See README, 'Adapting This for Your Own Desktop'.",
     )
     success, powered_on, connected = controls.toggle_bluetooth()
     if not success:

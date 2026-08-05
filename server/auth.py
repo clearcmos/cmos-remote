@@ -1,4 +1,4 @@
-"""HMAC challenge-response authentication for the CMOS Remote server.
+"""HMAC challenge-response authentication for the Desk Remote server.
 
 The shared secret never travels on the wire. Each request carries
 X-Auth-Ts / X-Auth-Nonce / X-Auth-Sig, where the signature is

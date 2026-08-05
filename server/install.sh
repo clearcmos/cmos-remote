@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install the CMOS Remote server as a systemd *user* service.
+# Install the Desk Remote server as a systemd *user* service.
 #
 # Idempotent: safe to re-run (also the way to redeploy after code changes).
 # Creates the venv, installs deps, provisions the auth token, deploys and
@@ -9,8 +9,8 @@
 # audio endpoints. Works on any distro with those; nothing here is Arch-specific.
 #
 # Auth token, in order of preference:
-#   1. CMOS_REMOTE_TOKEN in the environment  -> written to the env file
-#      e.g.  CMOS_REMOTE_TOKEN="$(openssl rand -hex 32)" ./server/install.sh
+#   1. DESKREMOTE_TOKEN in the environment  -> written to the env file
+#      e.g.  DESKREMOTE_TOKEN="$(openssl rand -hex 32)" ./server/install.sh
 #   2. 1Password via `op inject` (the author's setup; needs op plus a service
 #      account token at ~/.config/op/SVC_API.token)
 #   3. Neither: the server runs open, with a warning. Enter the same token in
@@ -22,9 +22,9 @@ set -euo pipefail
 
 SERVER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV="$SERVER_DIR/.venv"
-UNIT_SRC="$SERVER_DIR/cmos-remote.service"
+UNIT_SRC="$SERVER_DIR/deskremote.service"
 UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
-UNIT_DST="$UNIT_DIR/cmos-remote.service"
+UNIT_DST="$UNIT_DIR/deskremote.service"
 
 echo "==> Server dir: $SERVER_DIR"
 
@@ -43,21 +43,21 @@ echo "==> Installing Python dependencies (hash-verified)"
 "$VENV/bin/pip" install -q --upgrade pip
 "$VENV/bin/pip" install -q --require-hashes -r "$SERVER_DIR/requirements.lock"
 
-# 2. Provision the shared auth token into ~/.config/cmos-remote/env (0600),
+# 2. Provision the shared auth token into ~/.config/deskremote/env (0600),
 #    which the unit loads via EnvironmentFile.
-ENV_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/cmos-remote"
+ENV_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/deskremote"
 ENV_FILE="$ENV_DIR/env"
-ENV_TPL="$SERVER_DIR/cmos-remote.env.tpl"
+ENV_TPL="$SERVER_DIR/deskremote.env.tpl"
 mkdir -p "$ENV_DIR"; chmod 700 "$ENV_DIR"
 
 write_env_file() {
     # umask first: the file must never exist world-readable, even briefly.
-    ( umask 077; printf 'CMOS_REMOTE_TOKEN=%s\n' "$1" > "$ENV_FILE" )
+    ( umask 077; printf 'DESKREMOTE_TOKEN=%s\n' "$1" > "$ENV_FILE" )
     chmod 600 "$ENV_FILE"
 }
 
-if [[ -n "${CMOS_REMOTE_TOKEN:-}" ]]; then
-    write_env_file "$CMOS_REMOTE_TOKEN"
+if [[ -n "${DESKREMOTE_TOKEN:-}" ]]; then
+    write_env_file "$DESKREMOTE_TOKEN"
     echo "==> Auth token taken from the environment, written to $ENV_FILE"
 elif command -v op >/dev/null 2>&1 && [[ -f "$HOME/.config/op/SVC_API.token" ]]; then
     # shellcheck disable=SC1091
@@ -66,7 +66,7 @@ elif command -v op >/dev/null 2>&1 && [[ -f "$HOME/.config/op/SVC_API.token" ]];
         chmod 600 "$ENV_FILE"
         echo "==> Auth token injected from 1Password into $ENV_FILE"
     else
-        echo "WARNING: op inject failed (is op://api/CMOS_REMOTE/password created?)."
+        echo "WARNING: op inject failed (is op://api/DESKREMOTE/password created?)."
         echo "         Server will run WITHOUT auth until this resolves. See README."
     fi
 elif [[ -f "$ENV_FILE" ]]; then
@@ -74,7 +74,7 @@ elif [[ -f "$ENV_FILE" ]]; then
 else
     echo "WARNING: no auth token provisioned; the server will run WITHOUT auth."
     echo "         To enable it, re-run with a token in the environment:"
-    echo "           CMOS_REMOTE_TOKEN=\"\$(openssl rand -hex 32)\" ./server/install.sh"
+    echo "           DESKREMOTE_TOKEN=\"\$(openssl rand -hex 32)\" ./server/install.sh"
     echo "         then enter the same value in the app's settings."
 fi
 
@@ -90,12 +90,12 @@ fi
 
 # 4. Enable + (re)start to pick up any code changes
 systemctl --user daemon-reload
-systemctl --user enable cmos-remote.service
-systemctl --user restart cmos-remote.service || true
+systemctl --user enable deskremote.service
+systemctl --user restart deskremote.service || true
 
 echo
 echo "==> Status:"
-systemctl --user --no-pager --lines=0 status cmos-remote.service || true
+systemctl --user --no-pager --lines=0 status deskremote.service || true
 echo
 echo "Test:  curl http://127.0.0.1:8201/health   (returns 401 once auth is on)"
 echo

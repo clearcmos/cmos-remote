@@ -1,16 +1,16 @@
-package com.clearcmos.cmosremote
+package com.clearcmos.deskremote
 
 import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.clearcmos.cmosremote.data.ConnectionState
-import com.clearcmos.cmosremote.data.RemoteAction
-import com.clearcmos.cmosremote.data.RemoteState
-import com.clearcmos.cmosremote.data.SettingsManager
-import com.clearcmos.cmosremote.network.ApiClient
-import com.clearcmos.cmosremote.network.NetworkMonitor
+import com.clearcmos.deskremote.data.ConnectionState
+import com.clearcmos.deskremote.data.RemoteAction
+import com.clearcmos.deskremote.data.RemoteState
+import com.clearcmos.deskremote.data.SettingsManager
+import com.clearcmos.deskremote.network.ApiClient
+import com.clearcmos.deskremote.network.NetworkMonitor
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay  // Used for volume debouncing
 import kotlinx.coroutines.flow.MutableStateFlow

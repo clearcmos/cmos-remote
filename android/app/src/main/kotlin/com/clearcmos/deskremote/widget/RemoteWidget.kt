@@ -1,4 +1,4 @@
-package com.clearcmos.cmosremote.widget
+package com.clearcmos.deskremote.widget
 
 import android.content.Context
 import android.util.Log
@@ -40,11 +40,11 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import com.clearcmos.cmosremote.data.ConnectionState
-import com.clearcmos.cmosremote.data.RemoteAction
-import com.clearcmos.cmosremote.data.SettingsManager
-import com.clearcmos.cmosremote.network.ApiClient
-import com.clearcmos.cmosremote.network.NetworkMonitor
+import com.clearcmos.deskremote.data.ConnectionState
+import com.clearcmos.deskremote.data.RemoteAction
+import com.clearcmos.deskremote.data.SettingsManager
+import com.clearcmos.deskremote.network.ApiClient
+import com.clearcmos.deskremote.network.NetworkMonitor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -61,7 +61,7 @@ private val ColorMuteActive = androidx.compose.ui.graphics.Color(0xFFF44336)
 private val ColorBluetoothActive = androidx.compose.ui.graphics.Color(0xFF2196F3)
 
 /**
- * Glance widget for CMOS Remote control.
+ * Glance widget for Desk Remote control.
  */
 class RemoteWidget : GlanceAppWidget() {
 

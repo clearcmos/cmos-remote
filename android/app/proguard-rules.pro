@@ -1,4 +1,4 @@
-# CMOS Remote ProGuard Rules
+# Desk Remote ProGuard Rules
 
 # Keep Kotlin serialization
 -keepattributes *Annotation*, InnerClasses
@@ -11,16 +11,16 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
--keep,includedescriptorclasses class com.clearcmos.cmosremote.**$$serializer { *; }
--keepclassmembers class com.clearcmos.cmosremote.** {
+-keep,includedescriptorclasses class com.clearcmos.deskremote.**$$serializer { *; }
+-keepclassmembers class com.clearcmos.deskremote.** {
     *** Companion;
 }
--keepclasseswithmembers class com.clearcmos.cmosremote.** {
+-keepclasseswithmembers class com.clearcmos.deskremote.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
 
 # Keep data classes
--keep class com.clearcmos.cmosremote.data.** { *; }
+-keep class com.clearcmos.deskremote.data.** { *; }
 
 # OkHttp
 -dontwarn okhttp3.**

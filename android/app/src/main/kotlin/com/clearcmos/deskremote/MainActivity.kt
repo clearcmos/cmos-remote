@@ -1,4 +1,4 @@
-package com.clearcmos.cmosremote
+package com.clearcmos.deskremote
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -22,10 +22,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.clearcmos.cmosremote.data.ConnectionState
-import com.clearcmos.cmosremote.data.RemoteAction
-import com.clearcmos.cmosremote.data.RemoteState
-import com.clearcmos.cmosremote.ui.theme.CMOSRemoteTheme
+import com.clearcmos.deskremote.data.ConnectionState
+import com.clearcmos.deskremote.data.RemoteAction
+import com.clearcmos.deskremote.data.RemoteState
+import com.clearcmos.deskremote.ui.theme.DeskRemoteTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            CMOSRemoteTheme {
+            DeskRemoteTheme {
                 val viewModel: RemoteViewModel = viewModel(
                     factory = RemoteViewModel.Factory(applicationContext)
                 )
@@ -67,7 +67,7 @@ fun RemoteScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("CMOS Remote") },
+                title = { Text("Desk Remote") },
                 actions = {
                     IconButton(onClick = { showSettings = true }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
@@ -512,7 +512,7 @@ fun DisconnectedMessage(state: RemoteState) {
         Text(
             text = when (state.connectionState) {
                 ConnectionState.DISCONNECTED -> "Not connected to WiFi"
-                ConnectionState.UNREACHABLE -> "Cannot reach CMOS server"
+                ConnectionState.UNREACHABLE -> "Cannot reach the server"
                 else -> "Connecting..."
             },
             style = MaterialTheme.typography.bodyLarge,
@@ -520,7 +520,7 @@ fun DisconnectedMessage(state: RemoteState) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Connect to your home WiFi to control CMOS",
+            text = "Connect to the server's network to control your desktop",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
         )

@@ -13,7 +13,7 @@ import auth
 import controls
 import main
 
-TOKEN = b"cmos-remote-test-token-not-a-real-secret"
+TOKEN = b"deskremote-test-token-not-a-real-secret"
 NOW = 1750000000
 
 
@@ -38,7 +38,7 @@ def signed_headers(nonce: str, method: str, path: str, body: bytes = b"") -> dic
 def test_health_is_open_when_no_token_is_set(open_client):
     response = open_client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "service": "cmos-remote"}
+    assert response.json() == {"status": "ok", "service": "deskremote"}
 
 
 def test_open_mode_does_not_sign_responses(open_client):

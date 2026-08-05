@@ -2,13 +2,13 @@
 
 ## Overview
 
-CMOS Remote uses a client-server architecture with HTTP REST API communication over the local network.
+Desk Remote uses a client-server architecture with HTTP REST API communication over the local network.
 
 ## Components
 
 ### 1. FastAPI Server (`server/`)
 
-Runs on the cmos desktop host (Arch Linux) as a systemd **user** service (required for audio/Bluetooth access).
+Runs on the desktop host (developed on Arch Linux) as a systemd **user** service (required for audio/Bluetooth access).
 
 Three modules:
 
@@ -26,7 +26,7 @@ Three modules:
 **Endpoints:**
 
 ```
-GET  /health     → {"status": "ok", "service": "cmos-remote"}
+GET  /health     → {"status": "ok", "service": "deskremote"}
 GET  /status     → {"muted": bool, "volume": int, "bluetooth_on": bool, "bluetooth_connected": str|null}
 POST /mute       → {"success": bool, "message": str, "new_state": bool}
 POST /volume     → {"success": bool, "message": str, "level": int}  (body: {"level": 0-100})
@@ -110,7 +110,7 @@ RemoteWidget (GlanceAppWidget)
                              │ HTTP (port 8201)
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                      cmos Desktop (192.168.1.2)                  │
+│                      Desktop host (192.168.1.2)                    │
 │  ┌─────────────────┐                                            │
 │  │  FastAPI Server │                                            │
 │  │  (port 8201)    │                                            │
@@ -131,7 +131,7 @@ RemoteWidget (GlanceAppWidget)
 
 ### Network Security
 
-1. **HMAC challenge-response auth** - Server and app share a secret (`CMOS_REMOTE_TOKEN`). Requests are signed (HMAC-SHA256 over ts/nonce/method/path/body) and responses are signed over the request nonce, so the app also verifies the server's identity. The secret never travels on the wire; replay is bounded by a 60s window plus a server-side nonce cache. When the token is unset, the server runs open (no auth).
+1. **HMAC challenge-response auth** - Server and app share a secret (`DESKREMOTE_TOKEN`). Requests are signed (HMAC-SHA256 over ts/nonce/method/path/body) and responses are signed over the request nonce, so the app also verifies the server's identity. The secret never travels on the wire; replay is bounded by a 60s window plus a server-side nonce cache. When the token is unset, the server runs open (no auth).
 2. **LAN-Only** - Server binds to all interfaces but the nftables firewall restricts port 8201 to `192.168.1.0/24`
 3. **Plain HTTP, deliberately** - There is no TLS: the server is reached by LAN IP, which no certificate authority will issue for. The app's network security config therefore permits cleartext for all destinations, because the destination is whatever address the user types into settings. Authenticity comes from the HMAC layer in both directions instead; confidentiality is not provided, and the payloads are mute and volume state. An earlier version of that config tried to allow cleartext per CIDR range, which Android does not support: `<domain>` matches exact hosts only, so the app could reach exactly one hardcoded address.
 

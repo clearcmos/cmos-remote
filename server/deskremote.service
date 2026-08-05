@@ -1,6 +1,6 @@
 [Unit]
-Description=CMOS Remote Server - desktop control API for the Android remote app
-Documentation=https://github.com/clearcmos/cmos-remote
+Description=Desk Remote Server - desktop control API for the Android remote app
+Documentation=https://github.com/clearcmos/deskremote
 After=network-online.target pipewire.service
 Wants=network-online.target
 
@@ -15,9 +15,9 @@ ExecStart=@SERVER_DIR@/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8201
 # directories. /run/current-system/sw/bin is there so a NixOS host works too.
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin:/run/current-system/sw/bin
 Environment=PYTHONUNBUFFERED=1
-# CMOS_REMOTE_TOKEN (the shared HMAC secret) is written here by install.sh.
+# DESKREMOTE_TOKEN (the shared HMAC secret) is written here by install.sh.
 # Leading "-" makes it optional: with no file, the server runs open.
-EnvironmentFile=-%h/.config/cmos-remote/env
+EnvironmentFile=-%h/.config/deskremote/env
 Restart=always
 RestartSec=5
 

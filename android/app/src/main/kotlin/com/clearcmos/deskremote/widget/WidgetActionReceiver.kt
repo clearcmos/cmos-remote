@@ -1,14 +1,14 @@
-package com.clearcmos.cmosremote.widget
+package com.clearcmos.deskremote.widget
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.glance.appwidget.GlanceAppWidgetManager
-import com.clearcmos.cmosremote.data.RemoteAction
-import com.clearcmos.cmosremote.data.SettingsManager
-import com.clearcmos.cmosremote.network.ApiClient
-import com.clearcmos.cmosremote.network.NetworkMonitor
+import com.clearcmos.deskremote.data.RemoteAction
+import com.clearcmos.deskremote.data.SettingsManager
+import com.clearcmos.deskremote.network.ApiClient
+import com.clearcmos.deskremote.network.NetworkMonitor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,9 +22,9 @@ class WidgetActionReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "WidgetActionReceiver"
-        const val ACTION_MUTE = "com.clearcmos.cmosremote.ACTION_MUTE"
-        const val ACTION_BLUETOOTH = "com.clearcmos.cmosremote.ACTION_BLUETOOTH"
-        const val ACTION_REFRESH = "com.clearcmos.cmosremote.ACTION_REFRESH"
+        const val ACTION_MUTE = "com.clearcmos.deskremote.ACTION_MUTE"
+        const val ACTION_BLUETOOTH = "com.clearcmos.deskremote.ACTION_BLUETOOTH"
+        const val ACTION_REFRESH = "com.clearcmos.deskremote.ACTION_REFRESH"
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())

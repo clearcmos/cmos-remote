@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "Installing CMOS Remote..."
+echo "Installing Desk Remote..."
 
 if ! adb devices | grep -q "device$"; then
     echo "No device connected via ADB"

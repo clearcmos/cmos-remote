@@ -11,18 +11,18 @@
 ```
 
 **Check 2: Auth Token**
-The app only connects when its auth token matches the server's `CMOS_REMOTE_TOKEN`.
+The app only connects when its auth token matches the server's `DESKREMOTE_TOKEN`.
 - In the app, tap the gear icon and confirm the token is set correctly
-- On the server, compare: `op read op://api/CMOS_REMOTE/password`
+- On the server, compare: `op read op://api/DESKREMOTE/password`
 
 **Check 3: Server Running**
 ```bash
-systemctl --user status cmos-remote
+systemctl --user status deskremote
 # Should show: active (running)
 
 # If not running:
-systemctl --user start cmos-remote
-journalctl --user -u cmos-remote -n 50  # Check for errors
+systemctl --user start deskremote
+journalctl --user -u deskremote -n 50  # Check for errors
 ```
 
 **Check 4: Network Connectivity**
@@ -36,7 +36,7 @@ sudo nft list chain inet filter input | grep 8201
 ```
 
 **Check 5: Correct IP**
-Verify cmos host IP is 192.168.1.2:
+Verify desktop host IP is 192.168.1.2:
 ```bash
 ip -4 addr show
 ```
@@ -50,7 +50,7 @@ ip -4 addr show
 ### "Unreachable" even on the right network
 
 Usually an auth mismatch:
-1. The app's token doesn't match the server's `CMOS_REMOTE_TOKEN` - re-check both
+1. The app's token doesn't match the server's `DESKREMOTE_TOKEN` - re-check both
 2. The server is running open (no token provisioned) while the app has a token set - the app refuses an unsigned server response; provision the server token (`./server/install.sh`) or clear the app's token
 3. Phone and server clocks differ by more than 60s (the HMAC freshness window)
 
@@ -59,7 +59,7 @@ Usually an auth mismatch:
 ### Service Won't Start
 
 ```bash
-journalctl --user -u cmos-remote -n 100 --no-pager
+journalctl --user -u deskremote -n 100 --no-pager
 ```
 
 Common causes:
@@ -81,7 +81,7 @@ command -v bt-toggle                      # expect ~/.local/bin/bt-toggle
 
 The service runs as a systemd **user** service in your own session, so it already has your PipeWire and D-Bus access. Verify it is the user unit:
 ```bash
-systemctl --user status cmos-remote
+systemctl --user status deskremote
 ```
 
 If audio/bluetooth commands fail, test them directly in your session:
@@ -142,7 +142,7 @@ curl -X POST http://192.168.1.2:8201/volume \
 
 **Check 3: Server Logs**
 ```bash
-journalctl --user -u cmos-remote -f
+journalctl --user -u deskremote -f
 # Look for volume-related errors
 ```
 
@@ -186,7 +186,7 @@ systemctl --user status screen-off-toggle
 ```
 
 **Check 2: Test Keyboard Shortcut**
-Press Meta+F10 on cmos desktop - screens should turn off and DND should enable.
+Press Meta+F10 on desktop host - screens should turn off and DND should enable.
 
 **Check 3: Test API Endpoint**
 ```bash
@@ -290,14 +290,14 @@ Common causes:
 
 ### Server Logs
 ```bash
-journalctl --user -u cmos-remote -f  # Follow live
-journalctl --user -u cmos-remote -n 100  # Last 100 lines
-journalctl --user -u cmos-remote --since "10 minutes ago"
+journalctl --user -u deskremote -f  # Follow live
+journalctl --user -u deskremote -n 100  # Last 100 lines
+journalctl --user -u deskremote --since "10 minutes ago"
 ```
 
 ### Android Logs
 ```bash
-adb logcat | grep -i cmosremote
+adb logcat | grep -i deskremote
 adb logcat -s "RemoteViewModel"
 adb logcat -s "ApiClient"
 adb logcat -s "NetworkMonitor"
@@ -306,10 +306,10 @@ adb logcat -s "NetworkMonitor"
 ### Full Debug Session
 ```bash
 # Terminal 1: Server logs
-journalctl --user -u cmos-remote -f
+journalctl --user -u deskremote -f
 
 # Terminal 2: Android logs
-adb logcat | grep -iE "(cmosremote|glance)"
+adb logcat | grep -iE "(deskremote|glance)"
 
 # Terminal 3: Test endpoints
 watch -n 2 'curl -s http://192.168.1.2:8201/status | jq'

@@ -1,5 +1,5 @@
 {
-  description = "CMOS Remote Android app development environment";
+  description = "Desk Remote Android app development environment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -48,7 +48,7 @@
             export PATH="$ANDROID_HOME/platform-tools:$PATH"
             export PATH="$ANDROID_HOME/build-tools/${buildToolsVersion}:$PATH"
 
-            echo "CMOS Remote Android development environment loaded"
+            echo "Desk Remote Android development environment loaded"
             echo "ANDROID_HOME: $ANDROID_HOME"
             echo "Java: $(java -version 2>&1 | head -n 1)"
             echo ""

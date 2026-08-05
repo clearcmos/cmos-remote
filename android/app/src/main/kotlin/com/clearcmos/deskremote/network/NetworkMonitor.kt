@@ -1,4 +1,4 @@
-package com.clearcmos.cmosremote.network
+package com.clearcmos.deskremote.network
 
 import android.content.Context
 import android.net.ConnectivityManager

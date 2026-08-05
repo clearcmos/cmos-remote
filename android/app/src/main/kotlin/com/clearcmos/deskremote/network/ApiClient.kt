@@ -1,9 +1,9 @@
-package com.clearcmos.cmosremote.network
+package com.clearcmos.deskremote.network
 
-import com.clearcmos.cmosremote.data.ActionResponse
-import com.clearcmos.cmosremote.data.StatusResponse
-import com.clearcmos.cmosremote.data.VolumeRequest
-import com.clearcmos.cmosremote.data.VolumeResponse
+import com.clearcmos.deskremote.data.ActionResponse
+import com.clearcmos.deskremote.data.StatusResponse
+import com.clearcmos.deskremote.data.VolumeRequest
+import com.clearcmos.deskremote.data.VolumeResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -17,7 +17,7 @@ import okhttp3.Response
 import java.util.concurrent.TimeUnit
 
 /**
- * HTTP client for communicating with the CMOS Remote server.
+ * HTTP client for communicating with the Desk Remote server.
  */
 class ApiClient(private val baseUrl: String, token: String = "") {
 

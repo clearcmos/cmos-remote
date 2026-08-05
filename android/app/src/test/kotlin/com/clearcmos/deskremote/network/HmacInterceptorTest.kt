@@ -1,7 +1,7 @@
-package com.clearcmos.cmosremote.network
+package com.clearcmos.deskremote.network
 
-import com.clearcmos.cmosremote.Spec
-import com.clearcmos.cmosremote.Spec.str
+import com.clearcmos.deskremote.Spec
+import com.clearcmos.deskremote.Spec.str
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request

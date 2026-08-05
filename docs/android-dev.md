@@ -181,7 +181,7 @@ The keystore is the only thing that can publish an upgrade for this app id.
 Losing it means users must uninstall before installing a future version.
 
 ```bash
-keytool -genkeypair -v -keystore release.jks -alias cmos-remote -keyalg RSA -keysize 4096 -validity 10000
+keytool -genkeypair -v -keystore release.jks -alias deskremote -keyalg RSA -keysize 4096 -validity 10000
 ```
 
 For local release builds, keep it at `android/release.jks` and write
@@ -190,7 +190,7 @@ For local release builds, keep it at `android/release.jks` and write
 ```
 storeFile=release.jks
 storePassword=...
-keyAlias=cmos-remote
+keyAlias=deskremote
 keyPassword=...
 ```
 
@@ -212,7 +212,7 @@ Add these four secrets to the GitHub repository:
 |--------|-------|
 | `ANDROID_KEYSTORE_BASE64` | `base64 -w0 release.jks` |
 | `ANDROID_KEYSTORE_PASSWORD` | store password |
-| `ANDROID_KEY_ALIAS` | key alias (e.g. `cmos-remote`) |
+| `ANDROID_KEY_ALIAS` | key alias (e.g. `deskremote`) |
 | `ANDROID_KEY_PASSWORD` | key password |
 
 ### Publishing
@@ -263,7 +263,7 @@ id("org.jetbrains.kotlin.plugin.compose") version "2.1.0" apply false
 ### View App Logs
 
 ```bash
-adb logcat | grep -i cmosremote
+adb logcat | grep -i deskremote
 # Or filter by tag:
 adb logcat -s "RemoteViewModel"
 ```
@@ -271,20 +271,20 @@ adb logcat -s "RemoteViewModel"
 ### Install and View Logs Together
 
 ```bash
-./gradlew installDebug && adb logcat | grep -i cmosremote
+./gradlew installDebug && adb logcat | grep -i deskremote
 ```
 
 ### Check App Installation
 
 ```bash
-adb shell pm list packages | grep cmosremote
-# Output: package:com.clearcmos.cmosremote
+adb shell pm list packages | grep deskremote
+# Output: package:com.clearcmos.deskremote
 ```
 
 ### Uninstall App
 
 ```bash
-adb uninstall com.clearcmos.cmosremote
+adb uninstall com.clearcmos.deskremote
 ```
 
 ## Tests

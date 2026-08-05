@@ -19,12 +19,12 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.clearcmos.cmosremote"
+    namespace = "com.clearcmos.deskremote"
     compileSdk = 35
     buildToolsVersion = "35.0.0"
 
     defaultConfig {
-        applicationId = "com.clearcmos.cmosremote"
+        applicationId = "com.clearcmos.deskremote"
         minSdk = 26
         targetSdk = 35
         // Overridable from the release workflow (-PversionCode / -PversionName)

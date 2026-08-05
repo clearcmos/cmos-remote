@@ -92,8 +92,8 @@ jobs:
               ;;
           esac
           mkdir -p dist
-          cp "$apk" "dist/cmos-remote-${TAG}.apk"
-          (cd dist && sha256sum "cmos-remote-${TAG}.apk" > "cmos-remote-${TAG}.apk.sha256")
+          cp "$apk" "dist/deskremote-${TAG}.apk"
+          (cd dist && sha256sum "deskremote-${TAG}.apk" > "deskremote-${TAG}.apk.sha256")
 
       - name: Publish release
         env:
@@ -104,8 +104,8 @@ jobs:
             --repo "${{ github.repository }}" \
             --title "$TAG" \
             --generate-notes \
-            "dist/cmos-remote-${TAG}.apk" \
-            "dist/cmos-remote-${TAG}.apk.sha256"
+            "dist/deskremote-${TAG}.apk" \
+            "dist/deskremote-${TAG}.apk.sha256"
 
       - name: Remove signing material
         if: always()
