@@ -63,14 +63,14 @@ MainActivity.kt
 ```
 RemoteViewModel
     ├── state: StateFlow<RemoteState>
-    ├── NetworkMonitor (observes WiFi changes)
+    ├── NetworkMonitor (observes WiFi/Ethernet changes)
     ├── ApiClient (HTTP requests)
     └── SettingsManager (DataStore preferences)
 ```
 
 **State Flow:**
 1. App starts → ViewModel initializes
-2. NetworkMonitor emits WiFi state changes
+2. NetworkMonitor emits network state changes (WiFi or Ethernet)
 3. ViewModel builds the signed API client (server URL + token)
 4. Polls `/status` endpoint (signed request; response signature verified)
 5. UI updates based on RemoteState
@@ -133,13 +133,14 @@ RemoteWidget (GlanceAppWidget)
 
 1. **HMAC challenge-response auth** - Server and app share a secret (`CMOS_REMOTE_TOKEN`). Requests are signed (HMAC-SHA256 over ts/nonce/method/path/body) and responses are signed over the request nonce, so the app also verifies the server's identity. The secret never travels on the wire; replay is bounded by a 60s window plus a server-side nonce cache. When the token is unset, the server runs open (no auth).
 2. **LAN-Only** - Server binds to all interfaces but the nftables firewall restricts port 8201 to `192.168.1.0/24`
+3. **Plain HTTP, deliberately** - There is no TLS: the server is reached by LAN IP, which no certificate authority will issue for. The app's network security config therefore permits cleartext for all destinations, because the destination is whatever address the user types into settings. Authenticity comes from the HMAC layer in both directions instead; confidentiality is not provided, and the payloads are mute and volume state. An earlier version of that config tried to allow cleartext per CIDR range, which Android does not support: `<domain>` matches exact hosts only, so the app could reach exactly one hardcoded address.
 
 ### Android Permissions
 
 | Permission | Purpose |
 |------------|---------|
 | `INTERNET` | HTTP requests to server |
-| `ACCESS_NETWORK_STATE` | Detect WiFi connectivity |
+| `ACCESS_NETWORK_STATE` | Detect local-network connectivity |
 
 The app requests no location or WiFi-state permissions. Connection is decided by connectivity plus the authenticated health check, not by network name.
 
@@ -165,7 +166,7 @@ rather than surfacing later as an unexplained "Disconnected" in the app.
 1. MainActivity.onCreate()
 2. → RemoteViewModel initialized
 3. → NetworkMonitor starts observing connectivity
-4. → If WiFi connected:
+4. → If on a local network (WiFi or Ethernet):
    4a. → Call /status endpoint (signed request)
    4b. → Verify response signature, then update state with mute/bluetooth status
 5. → UI renders based on state

@@ -68,7 +68,7 @@ This repo owns the `cmos-remote` server end to end: the application code, the sy
   - `data/SettingsManager.kt` - DataStore preferences
   - `network/ApiClient.kt` - OkHttp HTTP client
   - `network/HmacInterceptor.kt` - signs requests, verifies response signatures
-  - `network/NetworkMonitor.kt` - WiFi/connectivity monitoring
+  - `network/NetworkMonitor.kt` - connectivity monitoring (WiFi or Ethernet)
   - `ui/theme/Theme.kt` - Material 3 theme
   - `widget/RemoteWidget.kt` - Glance home screen widget
   - `widget/WidgetActionReceiver.kt` - Broadcast receiver for widget actions
@@ -186,7 +186,7 @@ Then re-run `./server/install.sh` and enter the same value in the app settings.
 
 ### LAN Detection
 The app uses a two-tier approach:
-1. Check if connected to WiFi (via `ConnectivityManager`; no location or WiFi-state permission required)
+1. Check for a local-network-capable transport, WiFi or Ethernet (via `ConnectivityManager`; no location or WiFi-state permission required). Ethernet counts because docked tablets and emulators report it, and gating on WiFi alone left those permanently "Disconnected".
 2. Authenticated health check against the server endpoint at the configured IP:port
 
 If either fails, the app shows "Disconnected"/"Unreachable" and disables controls. With auth enabled, the health check only succeeds against a server that holds the shared secret, so the app connects based on cryptographic identity, not network name. There is no SSID allowlist.
@@ -331,6 +331,26 @@ Dated, with the reason. Add to this rather than rewriting it.
   to move together (language, compose, serialization) or the build fails on a
   mismatch, and AndroidX bumps often carry a minimum AGP, so a per-dependency PR
   can never go green on its own.
+
+- **2026-08-05 - the app's network security config permits cleartext globally
+  (`base-config`), replacing per-CIDR `<domain>` entries.** Android's `<domain>`
+  matches exact hosts or IP literals only, with no range support, and
+  `usesCleartextTraffic` is ignored whenever a config is present. The old file
+  listed `192.168.1.0/24` and friends, so cleartext was permitted to exactly one
+  hardcoded address: the app worked only against 192.168.1.2 and silently failed
+  for anyone else. Verified in the built APK with `aapt2 dump xmltree`.
+- **2026-08-05 - LAN detection accepts WiFi or Ethernet, not WiFi alone.**
+  Docked tablets and emulators report `TRANSPORT_ETHERNET` and were permanently
+  "Disconnected". Cellular is still excluded. The authenticated health check,
+  not the transport, remains the real gate.
+- **2026-08-05 - endpoints answer 503 naming a missing helper, and ApiClient
+  surfaces FastAPI's `detail`.** "bt-toggle not found on PATH" is a five-second
+  fix; "Server returned 503" is a puzzle. `/status` still degrades rather than
+  failing, so the app can connect to a host with no PipeWire.
+- **2026-08-05 - the shipped systemd unit uses an `@SERVER_DIR@` placeholder.**
+  It previously contained the author's absolute checkout path, which install.sh
+  rewrote by matching that exact literal. The installer now substitutes the
+  placeholder and fails loudly if any remains.
 
 ### Known upgrade chains (blocked, not forgotten)
 

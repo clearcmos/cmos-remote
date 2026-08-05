@@ -1,10 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Cleartext HTTP is permitted for every destination, deliberately.
+
+    The server is a plain-HTTP service on whatever LAN address the user types
+    into the app's settings, so there is no hostname to enumerate here and no
+    certificate to pin. An earlier version of this file listed
+    192.168.1.0/24 and similar CIDR blocks, which do not work: <domain> matches
+    exact hostnames or IP literals only, with no range support. The effect was
+    that the app could reach exactly one hardcoded address and nobody else's
+    server.
+
+    Authenticity does not come from TLS here, it comes from the HMAC layer:
+    requests are signed and every response signature is verified, so a server
+    that does not hold the shared secret is rejected as an impostor (see
+    HmacInterceptor). Traffic is not confidential, which is an accepted
+    trade-off for mute and volume state on a home LAN.
+-->
 <network-security-config>
-    <!-- Allow cleartext (HTTP) traffic to local network -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">192.168.1.2</domain>
-        <domain includeSubdomains="true">192.168.1.0/24</domain>
-        <domain includeSubdomains="true">10.0.0.0/8</domain>
-        <domain includeSubdomains="true">172.16.0.0/12</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
 </network-security-config>

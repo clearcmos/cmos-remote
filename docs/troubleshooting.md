@@ -4,9 +4,10 @@
 
 ### App shows "Disconnected" or "Server Unreachable"
 
-**Check 1: WiFi Connection**
+**Check 1: Network Connection**
 ```bash
-# On phone: Settings > WiFi - verify connected to home network
+# On phone: verify it is on the same network as the server (WiFi or Ethernet;
+# cellular is deliberately treated as off-LAN)
 ```
 
 **Check 2: Auth Token**
@@ -46,7 +47,7 @@ ip -4 addr show
 2. Kill and re-add widget to home screen
 3. Reboot phone to reset widget state
 
-### "Unreachable" even on the right WiFi
+### "Unreachable" even on the right network
 
 Usually an auth mismatch:
 1. The app's token doesn't match the server's `CMOS_REMOTE_TOKEN` - re-check both

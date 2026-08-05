@@ -69,7 +69,7 @@ class RemoteViewModel(
         // Monitor WiFi and settings changes
         viewModelScope.launch {
             combine(
-                networkMonitor.isWifiConnected,
+                networkMonitor.isOnLocalNetwork,
                 settingsManager.serverUrl,
                 settingsManager.authToken
             ) { wifiConnected, serverUrl, authToken ->

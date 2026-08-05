@@ -50,7 +50,7 @@ class WidgetActionReceiver : BroadcastReceiver() {
             val networkMonitor = NetworkMonitor.getInstance(context)
 
             // Check network
-            if (!networkMonitor.checkWifiConnected()) {
+            if (!networkMonitor.checkOnLocalNetwork()) {
                 Log.d(TAG, "Not connected to WiFi")
                 updateAllWidgets(context)
                 return

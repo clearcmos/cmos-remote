@@ -6,13 +6,17 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/mnt/data/git/cmos-remote/server
-ExecStart=/mnt/data/git/cmos-remote/server/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8201
-# bt-toggle lives in ~/.local/bin; the rest resolve from /usr/bin
-Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+# @SERVER_DIR@ is replaced with this checkout's server/ directory by
+# install.sh, which is what deploys this file. Do not copy it into
+# ~/.config/systemd/user by hand; run ./server/install.sh instead.
+WorkingDirectory=@SERVER_DIR@
+ExecStart=@SERVER_DIR@/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8201
+# bt-toggle usually lives in ~/.local/bin; the rest resolve from the system
+# directories. /run/current-system/sw/bin is there so a NixOS host works too.
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin:/run/current-system/sw/bin
 Environment=PYTHONUNBUFFERED=1
-# CMOS_REMOTE_TOKEN (shared HMAC secret) is injected here by install.sh from
-# 1Password. Leading "-" makes it optional: absent file => server runs open.
+# CMOS_REMOTE_TOKEN (the shared HMAC secret) is written here by install.sh.
+# Leading "-" makes it optional: with no file, the server runs open.
 EnvironmentFile=-%h/.config/cmos-remote/env
 Restart=always
 RestartSec=5

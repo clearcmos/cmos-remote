@@ -44,6 +44,22 @@ SYSTEMCTL = resolve("systemctl", "/usr/bin/systemctl")
 DEFAULT_SINK = "@DEFAULT_AUDIO_SINK@"
 
 
+def available(command: str) -> bool:
+    """Whether a command resolved by `resolve()` actually exists.
+
+    `resolve()` returns the bare name when it finds nothing, so that subprocess
+    can still try PATH at exec time. A value with no path separator therefore
+    means "not found at import"; re-check PATH in case it appeared since.
+
+    Endpoints use this to answer with the missing command's name instead of a
+    generic failure, which is the difference between a five-second fix and a
+    puzzle for anyone setting this up on their own machine.
+    """
+    if os.sep in command:
+        return os.path.exists(command)
+    return shutil.which(command) is not None
+
+
 def run(args: list[str], timeout: int = 5, check: bool = False) -> subprocess.CompletedProcess[str]:
     """Single choke point for subprocess use, so tests can patch one function."""
     return subprocess.run(args, capture_output=True, text=True, timeout=timeout, check=check)

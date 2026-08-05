@@ -11,54 +11,64 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
- * Monitors network connectivity and WiFi state.
+ * Watches whether the device is on a network that could plausibly reach a LAN
+ * server: WiFi or Ethernet, but not cellular.
+ *
+ * This is only a cheap first gate. Whether the server is actually there, and
+ * actually the right server, is decided by the authenticated health check in
+ * [ApiClient] plus response verification in [HmacInterceptor]. Ethernet counts
+ * because tablets with a dock, and emulators, report TRANSPORT_ETHERNET; gating
+ * on WiFi alone left those permanently "Disconnected".
  */
 class NetworkMonitor(private val context: Context) {
 
-    private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    private val connectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
-    /**
-     * Flow that emits true when connected to WiFi, false otherwise.
-     */
-    val isWifiConnected: Flow<Boolean> = callbackFlow {
+    /** Emits true while a local-network-capable transport is connected. */
+    val isOnLocalNetwork: Flow<Boolean> = callbackFlow {
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                trySend(checkWifiConnected())
+                trySend(checkOnLocalNetwork())
             }
 
             override fun onLost(network: Network) {
-                trySend(false)
+                // Another transport may still be up, so re-check rather than
+                // assuming this loss means offline.
+                trySend(checkOnLocalNetwork())
             }
 
             override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
-                trySend(capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
+                trySend(checkOnLocalNetwork())
             }
         }
 
         val request = NetworkRequest.Builder()
             .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+            .addTransportType(NetworkCapabilities.TRANSPORT_ETHERNET)
             .build()
 
         connectivityManager.registerNetworkCallback(request, callback)
-
-        // Emit initial state
-        trySend(checkWifiConnected())
+        trySend(checkOnLocalNetwork())
 
         awaitClose {
             connectivityManager.unregisterNetworkCallback(callback)
         }
     }.distinctUntilChanged()
 
-    /**
-     * Check if currently connected to WiFi.
-     */
-    fun checkWifiConnected(): Boolean {
+    /** True when the active network is WiFi or Ethernet. */
+    fun checkOnLocalNetwork(): Boolean {
         val network = connectivityManager.activeNetwork ?: return false
         val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+        return LOCAL_TRANSPORTS.any { capabilities.hasTransport(it) }
     }
 
     companion object {
+        private val LOCAL_TRANSPORTS = intArrayOf(
+            NetworkCapabilities.TRANSPORT_WIFI,
+            NetworkCapabilities.TRANSPORT_ETHERNET,
+        )
+
         @Volatile
         private var INSTANCE: NetworkMonitor? = null
 

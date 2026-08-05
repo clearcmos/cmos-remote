@@ -128,12 +128,49 @@ class ApiClientTest {
     }
 
     @Test
-    fun `status fails on a non-2xx response`() {
-        server.enqueue(MockResponse().setResponseCode(401).setBody("""{"detail":"nope"}"""))
+    fun `status fails on a non-2xx response and reports the reason`() {
+        server.enqueue(
+            MockResponse().setResponseCode(401).setBody("""{"detail":"bad signature"}"""),
+        )
         val result = runBlocking { ApiClient(baseUrl).getStatus() }
 
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()!!.message!!.contains("401"))
+        assertEquals("bad signature", result.exceptionOrNull()!!.message)
+    }
+
+    @Test
+    fun `status falls back to the status code with no detail`() {
+        server.enqueue(MockResponse().setResponseCode(500))
+        val result = runBlocking { ApiClient(baseUrl).getStatus() }
+
+        assertEquals("Server returned 500", result.exceptionOrNull()!!.message)
+    }
+
+    @Test
+    fun `a server error surfaces the server's own explanation`() {
+        // The server names the missing helper in FastAPI's detail field; that is
+        // the message someone setting this up on their own machine needs to see,
+        // not "Server returned 503".
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(503)
+                .setBody("""{"detail":"bt-toggle not found on PATH. See README."}"""),
+        )
+        val result = runBlocking { ApiClient(baseUrl).toggleBluetooth() }
+
+        assertTrue(result.isFailure)
+        assertEquals(
+            "bt-toggle not found on PATH. See README.",
+            result.exceptionOrNull()!!.message,
+        )
+    }
+
+    @Test
+    fun `an error without a detail field falls back to the status code`() {
+        server.enqueue(MockResponse().setResponseCode(502).setBody("<html>bad gateway</html>"))
+        val result = runBlocking { ApiClient(baseUrl).toggleMute() }
+
+        assertEquals("Server returned 502", result.exceptionOrNull()!!.message)
     }
 
     @Test

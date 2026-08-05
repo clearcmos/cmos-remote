@@ -279,3 +279,25 @@ def test_resolve_returns_the_bare_name_when_nothing_is_found(monkeypatch):
     monkeypatch.setattr(controls.shutil, "which", lambda name: None)
     # subprocess can still find it via PATH at exec time, which is the point.
     assert controls.resolve("bt-toggle", "/nowhere/bt-toggle") == "bt-toggle"
+
+
+# --- availability -------------------------------------------------------------
+
+
+def test_available_true_for_an_existing_absolute_path(tmp_path):
+    binary = tmp_path / "bt-toggle"
+    binary.write_text("#!/bin/sh\n")
+    assert controls.available(str(binary)) is True
+
+
+def test_available_false_for_a_missing_absolute_path():
+    assert controls.available("/nowhere/at/all/bt-toggle") is False
+
+
+def test_available_rechecks_path_for_a_bare_name(monkeypatch):
+    # resolve() returns a bare name when it found nothing at import; available()
+    # asks PATH again in case the command was installed since.
+    monkeypatch.setattr(controls.shutil, "which", lambda name: None)
+    assert controls.available("bt-toggle") is False
+    monkeypatch.setattr(controls.shutil, "which", lambda name: "/usr/bin/bt-toggle")
+    assert controls.available("bt-toggle") is True

@@ -270,7 +270,7 @@ class WidgetActionCallback : ActionCallback {
                 val networkMonitor = NetworkMonitor.getInstance(context)
 
                 // Check network
-                if (!networkMonitor.checkWifiConnected()) {
+                if (!networkMonitor.checkOnLocalNetwork()) {
                     updateWidgetError(context, glanceId, "Not connected to WiFi")
                     return@withContext
                 }
@@ -354,7 +354,7 @@ suspend fun refreshWidgetState(context: Context, glanceId: GlanceId) {
             val networkMonitor = NetworkMonitor.getInstance(context)
 
             // Check network
-            if (!networkMonitor.checkWifiConnected()) {
+            if (!networkMonitor.checkOnLocalNetwork()) {
                 updateAppWidgetState(context, glanceId) { prefs ->
                     prefs[RemoteWidget.KEY_CONNECTION_STATE] = ConnectionState.DISCONNECTED.name
                     prefs[RemoteWidget.KEY_ERROR] = ""

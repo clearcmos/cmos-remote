@@ -6,12 +6,14 @@ import com.clearcmos.cmosremote.data.VolumeRequest
 import com.clearcmos.cmosremote.data.VolumeResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import java.util.concurrent.TimeUnit
 
 /**
@@ -68,7 +70,7 @@ class ApiClient(private val baseUrl: String, token: String = "") {
                     val status = json.decodeFromString<StatusResponse>(body)
                     Result.success(status)
                 } else {
-                    Result.failure(Exception("Server returned ${response.code}"))
+                    Result.failure(errorFor(response))
                 }
             }
         } catch (e: Exception) {
@@ -92,7 +94,7 @@ class ApiClient(private val baseUrl: String, token: String = "") {
                     val action = json.decodeFromString<ActionResponse>(body)
                     Result.success(action)
                 } else {
-                    Result.failure(Exception("Server returned ${response.code}"))
+                    Result.failure(errorFor(response))
                 }
             }
         } catch (e: Exception) {
@@ -116,7 +118,7 @@ class ApiClient(private val baseUrl: String, token: String = "") {
                     val action = json.decodeFromString<ActionResponse>(body)
                     Result.success(action)
                 } else {
-                    Result.failure(Exception("Server returned ${response.code}"))
+                    Result.failure(errorFor(response))
                 }
             }
         } catch (e: Exception) {
@@ -140,7 +142,7 @@ class ApiClient(private val baseUrl: String, token: String = "") {
                     val action = json.decodeFromString<ActionResponse>(body)
                     Result.success(action)
                 } else {
-                    Result.failure(Exception("Server returned ${response.code}"))
+                    Result.failure(errorFor(response))
                 }
             }
         } catch (e: Exception) {
@@ -165,13 +167,34 @@ class ApiClient(private val baseUrl: String, token: String = "") {
                     val volumeResponse = json.decodeFromString<VolumeResponse>(body)
                     Result.success(volumeResponse)
                 } else {
-                    Result.failure(Exception("Server returned ${response.code}"))
+                    Result.failure(errorFor(response))
                 }
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+
+    /**
+     * Failure carrying the server's own explanation when it sent one.
+     *
+     * FastAPI puts it in {"detail": "..."}, which is where a missing helper on
+     * the server ("bt-toggle not found on PATH ...") is named. Without this the
+     * app would only ever show "Server returned 503".
+     */
+    private fun errorFor(response: Response): Exception {
+        val detail = try {
+            response.body?.string()?.takeIf { it.isNotBlank() }?.let { body ->
+                json.decodeFromString<ErrorResponse>(body).detail
+            }
+        } catch (_: Exception) {
+            null // Not a FastAPI error shape; fall back to the status code.
+        }
+        return Exception(detail ?: "Server returned ${response.code}")
+    }
+
+    @Serializable
+    private data class ErrorResponse(val detail: String)
 
     companion object {
         @Volatile

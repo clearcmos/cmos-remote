@@ -123,6 +123,44 @@ def test_failed_volume_returns_500(open_client, monkeypatch):
     assert response.json()["detail"] == "Failed to set volume"
 
 
+# --- missing host dependencies ------------------------------------------------
+# The point of these: anyone running this on a machine that is not the author's
+# is missing bt-toggle and the screen-off unit, and a bare "failed" tells them
+# nothing about which one.
+
+
+@pytest.mark.parametrize(
+    ("path", "missing", "json_body"),
+    [
+        ("/mute", "WPCTL", None),
+        ("/volume", "WPCTL", {"level": 10}),
+        ("/bluetooth", "BT_TOGGLE", None),
+        ("/screen-off", "SYSTEMCTL", None),
+    ],
+)
+def test_missing_command_returns_503_naming_it(open_client, monkeypatch, path, missing, json_body):
+    command = getattr(controls, missing)
+    monkeypatch.setattr(controls, "available", lambda c: c != command)
+
+    response = open_client.post(path, json=json_body)
+
+    assert response.status_code == 503
+    assert command in response.json()["detail"]
+    assert "not found on PATH" in response.json()["detail"]
+
+
+def test_bluetooth_503_points_at_the_readme(open_client, monkeypatch):
+    monkeypatch.setattr(controls, "available", lambda c: c != controls.BT_TOGGLE)
+    assert "README" in open_client.post("/bluetooth").json()["detail"]
+
+
+def test_status_still_answers_when_commands_are_missing(open_client, monkeypatch):
+    # /status degrades instead of failing, so the app can still connect and show
+    # something on a host with no PipeWire.
+    monkeypatch.setattr(controls, "available", lambda c: False)
+    assert open_client.get("/status").status_code == 200
+
+
 # --- authenticated mode -------------------------------------------------------
 
 

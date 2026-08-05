@@ -11,7 +11,7 @@ Android remote control app for the cmos desktop (Arch Linux), with home screen w
 - **Home Screen Widget** - Common actions from the home screen without opening the app
 - **Authenticated** - HMAC challenge-response with a shared secret; the token never travels on the wire and the app verifies the server's identity before trusting it
 - **LAN-Only** - Firewalled to the LAN; the authenticated health check gates access
-- **Auto-Reconnect** - Automatically reconnects when WiFi state changes
+- **Auto-Reconnect** - Automatically reconnects when network state changes
 
 ## Architecture
 
@@ -37,17 +37,17 @@ off) directly.
 
 ## Requirements
 
-### Server (cmos host)
-- Arch Linux with a logged-in desktop session (systemd user service)
+### Server
+- Linux with systemd and a logged-in desktop session (the unit runs in user scope so it inherits that session's PipeWire and D-Bus). Developed on Arch; nothing in the code is Arch-specific.
 - Python 3.11+ with `venv`
 - PipeWire/WirePlumber for audio control
 - BlueZ for Bluetooth control, plus the `bt-toggle` helper on PATH (deployed from `~/arch`)
 - Port 8201 open on the LAN
-- For auth (recommended): 1Password CLI (`op`) + the `SVC_API` service-account token, to provision the shared secret
+- For auth (recommended): any way to set `CMOS_REMOTE_TOKEN` (pass it to `install.sh`, see below). The author's setup provisions it from 1Password, which is optional.
 
 ### Android App
 - Android 8.0+ (API 26)
-- Connected to home WiFi
+- On the same network as the server (WiFi or Ethernet; cellular is treated as off-LAN)
 - To build from source: JDK 17 and the Android SDK (platform 35, build-tools
   35.0.0). See `docs/android-dev.md`.
 
@@ -102,7 +102,7 @@ cd android
 
 1. Open the app
 2. Tap the gear icon and paste the auth token (from step 2); optionally set the server IP/port
-3. Ensure you're connected to your home WiFi
+3. Make sure the phone is on the same network as the server
 4. The app should show "Connected" status
 
 ### 5. Add the Widget
@@ -184,31 +184,60 @@ only machine-level dependency tracked in `~/arch` is the LAN firewall rule for
 port 8201, because the nftables config is rebuilt from that file on every reload.
 See `CLAUDE.md` for details.
 
-## Adapting This for Your Own Machine
+## Running This on Your Own Machine
 
-This is a personal tool built for one desktop (Arch + KDE Plasma + PipeWire), so some server-side pieces assume that environment. If you want to run it yourself:
+Written for one desktop, but nothing here is pinned to that machine. What you
+need, what is optional, and what you have to supply yourself:
 
-**Works anywhere with PipeWire**
-- `/health`, `/status`, `/mute`, `/volume` only need `wpctl` (PipeWire/WirePlumber).
-- The Android app is host-agnostic: set the server IP, port, and auth token in the app's settings (gear icon). No rebuild is needed to point it at your own server.
+**Required**
+- Linux with systemd (the server installs as a user unit) and Python 3.11+.
+- PipeWire/WirePlumber for the audio endpoints. Commands are resolved from PATH
+  at runtime, so no distro's layout is hardcoded.
+- Nothing else. There is no configuration file to edit, no hostname baked into
+  the app, and no dependency on the author's config repo.
 
-**Needs your own equivalents**
-- `/bluetooth` runs a `bt-toggle` command on the server's PATH. That script is not included here (it lives in the author's separate config repo) and encodes "turn Bluetooth on and connect a specific device." Supply your own `bt-toggle` on PATH, or drop the endpoint.
-- `/screen-off` starts a `screen-off-toggle.service` systemd user unit, which is KDE Plasma-specific (DND + display off). Supply your own unit of that name, or drop the endpoint.
-- A missing dependency does not crash the server; only that one endpoint returns an error.
+**Set your own values**
+```bash
+# Server: any random token works; the app just has to match it
+CMOS_REMOTE_TOKEN="$(openssl rand -hex 32)" ./server/install.sh
+```
+In the app, tap the gear icon and set the server IP, port, and that token. No
+rebuild needed; the APK is not tied to an address. Skip the token entirely and
+both sides run open.
 
-**Authentication**
-- The server enables auth when `CMOS_REMOTE_TOKEN` is set in its environment, and runs open when it is not. Any delivery method works (a plain `EnvironmentFile`, a shell export, etc.).
-- `install.sh` provisions the token from 1Password via `op inject`, which is specific to the author's setup. If you do not use 1Password, set `CMOS_REMOTE_TOKEN` yourself and skip that step. Enter the same value in the app.
+The installer also accepts the token from 1Password via `op inject`, which is the
+author's setup and entirely optional. It never overwrites an existing token
+unless you pass a new one.
+
+**Supply your own equivalents for two endpoints**
+- `/bluetooth` runs a `bt-toggle` command on the server's PATH. That script is
+  not in this repo (it encodes "turn Bluetooth on and connect one specific pair
+  of headphones"). Write your own with that name, or drop the endpoint.
+- `/screen-off` starts a `screen-off-toggle.service` systemd user unit, which is
+  KDE Plasma-specific (DND plus display off). Supply your own unit of that name,
+  or drop the endpoint.
+
+Missing helpers do not crash the server or break the other endpoints. The
+affected endpoint answers `503` naming the command it could not find, and the
+app shows that message rather than a generic failure. `/status` keeps working so
+the app still connects.
 
 **Firewall**
-- The server listens on `0.0.0.0:8201`; restrict it to your LAN with whatever firewall you use. The `~/arch/.../nftables` references in these docs are the author's mechanism, not a requirement.
+The server listens on `0.0.0.0:8201`; restrict it to your LAN with whatever
+firewall you use. The `~/arch/.../nftables` commands in these docs are the
+author's mechanism, not a requirement.
+
+**What is genuinely author-specific**
+Only conveniences, all optional: the 1Password token provisioning, the nftables
+rule location, the `bt-toggle` and `screen-off-toggle` helpers named above, and
+the nix dev shell in `android/`. The default server IP shown in the app's
+settings (`192.168.1.2`) is a starting value you overwrite in the UI.
 
 ## Troubleshooting
 
 ### App shows "Disconnected"
 
-1. Check the phone is on your home WiFi
+1. Check the phone is on the same network as the server (cellular counts as off-LAN)
 2. Verify the auth token in the app matches the server's
 3. Verify server is running: `systemctl --user status cmos-remote`
 4. Confirm the firewall is open (port 8201) and the service is reachable from the LAN

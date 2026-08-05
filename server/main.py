@@ -72,6 +72,17 @@ class ActionResponse(BaseModel):
     new_state: bool | None = None
 
 
+def require_command(command: str, hint: str) -> None:
+    """503 with the command's name when a required helper is not installed.
+
+    The endpoints that need something beyond PipeWire (the Bluetooth helper, the
+    screen-off unit) are the ones most likely to be missing on a machine that is
+    not the author's, so say which one it is rather than "failed".
+    """
+    if not controls.available(command):
+        raise HTTPException(status_code=503, detail=f"{command} not found on PATH. {hint}")
+
+
 async def authenticate(request: Request) -> None:
     """App-level auth dependency.
 
@@ -155,6 +166,7 @@ async def get_status() -> StatusResponse:
 @app.post("/mute", response_model=ActionResponse)
 async def toggle_mute_endpoint() -> ActionResponse:
     """Toggle system audio mute."""
+    require_command(controls.WPCTL, "Install PipeWire/WirePlumber.")
     success, new_state = controls.toggle_mute()
     if not success:
         raise HTTPException(status_code=500, detail="Failed to toggle mute")
@@ -168,6 +180,7 @@ async def toggle_mute_endpoint() -> ActionResponse:
 @app.post("/volume", response_model=VolumeResponse)
 async def set_volume_endpoint(request: VolumeRequest) -> VolumeResponse:
     """Set system volume level (0-100)."""
+    require_command(controls.WPCTL, "Install PipeWire/WirePlumber.")
     success, new_level = controls.set_volume(request.level)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to set volume")
@@ -183,6 +196,11 @@ async def get_volume_endpoint() -> dict[str, int]:
 @app.post("/bluetooth", response_model=ActionResponse)
 async def toggle_bluetooth_endpoint() -> ActionResponse:
     """Toggle Bluetooth and connect the configured headphones."""
+    require_command(
+        controls.BT_TOGGLE,
+        "This helper is not part of the repo; supply your own or drop this endpoint. "
+        "See README, 'Running This on Your Own Machine'.",
+    )
     success, powered_on, connected = controls.toggle_bluetooth()
     if not success:
         raise HTTPException(status_code=500, detail="Failed to toggle Bluetooth")
@@ -199,6 +217,7 @@ async def toggle_bluetooth_endpoint() -> ActionResponse:
 @app.post("/screen-off", response_model=ActionResponse)
 async def screen_off_endpoint() -> ActionResponse:
     """Turn off screens and enable DND (Meta+F10 equivalent)."""
+    require_command(controls.SYSTEMCTL, "systemd is required for this endpoint.")
     if not controls.trigger_screen_off():
         raise HTTPException(status_code=500, detail="Failed to trigger screen off")
     return ActionResponse(success=True, message="Screen off triggered", new_state=None)
