@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
@@ -62,10 +63,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -82,6 +79,15 @@ android {
                 events("failed", "skipped")
             }
         }
+    }
+}
+
+// Replaces the android { kotlinOptions { jvmTarget } } block: that DSL is
+// deprecated in Kotlin 2.1 and a hard error from 2.4, which a dependabot PR
+// bumping the Kotlin plugin surfaced before it could bite.
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
     }
 }
 

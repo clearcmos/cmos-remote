@@ -322,6 +322,29 @@ Dated, with the reason. Add to this rather than rewriting it.
   desktop session; a swapped wheel should fail the install, not land on the host.
 - **2026-08-04 - no CHANGELOG.md.** Git history plus tagged GitHub releases
   serve that purpose; the release workflow generates notes from commits.
+- **2026-08-05 - migrated off `android { kotlinOptions { jvmTarget } }` to
+  `kotlin { compilerOptions { jvmTarget } }`.** The old DSL is deprecated in
+  Kotlin 2.1 and a hard error from 2.4; a dependabot PR bumping the Kotlin
+  plugin surfaced it before it could bite. Bytecode target verified unchanged
+  (class file major version 61).
+- **2026-08-05 - dependabot updates are grouped.** Kotlin plugin versions have
+  to move together (language, compose, serialization) or the build fails on a
+  mismatch, and AndroidX bumps often carry a minimum AGP, so a per-dependency PR
+  can never go green on its own.
+
+### Known upgrade chains (blocked, not forgotten)
+
+Dependabot's first run found two bumps that need a toolchain move, which CI
+correctly refused:
+
+- `androidx.activity:activity-compose` 1.13.0 requires Android Gradle Plugin
+  8.9.1 or newer (currently 8.7.3), and pulls `androidx.navigationevent`. Doing
+  it means moving AGP, and likely `compileSdk` past 35, together.
+- Kotlin 2.4.x requires bumping all four Kotlin plugin versions in
+  `android/build.gradle.kts` at once, and a Compose compiler that matches.
+
+Neither is urgent: the app targets SDK 35 and builds clean. Take them as one
+deliberate toolchain upgrade rather than as individual dependency PRs.
 
 ## Additional Documentation
 

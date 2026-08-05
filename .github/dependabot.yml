@@ -5,13 +5,31 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
 
+  # Grouped because these versions move together: a Kotlin bump has to carry the
+  # compose and serialization plugins with it, and AndroidX bumps often pull a
+  # minimum AGP with them. One PR per group means CI verifies a coherent set.
   - package-ecosystem: gradle
     directory: /android
     schedule:
       interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      kotlin:
+        patterns: ["org.jetbrains.kotlin*"]
+      androidx:
+        patterns: ["androidx.*"]
+      other-gradle:
+        patterns: ["*"]
+        exclude-patterns: ["org.jetbrains.kotlin*", "androidx.*"]
 
   - package-ecosystem: pip
     directory: /server
     schedule:
       interval: monthly
+    groups:
+      python:
+        patterns: ["*"]
